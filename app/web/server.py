@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import shutil
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -36,6 +36,9 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "templates"
 MINIAPP_INDEX = TEMPLATES_DIR / "miniapp" / "index.html"
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 
 class JobResponse(BaseModel):
@@ -314,6 +317,18 @@ async def upload_job_source(
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            if int(declared) > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Max {MAX_UPLOAD_MB} MB.",
+                )
+        except ValueError:
+            pass 
+
     original_filename = file.filename or "upload.bin"
     suffix = Path(original_filename).suffix or ".bin"
     destination = build_job_input_path(
@@ -323,8 +338,26 @@ async def upload_job_source(
         suffix,
     )
 
-    with destination.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    
+    written = 0
+    try:
+        with destination.open("wb") as buffer:
+            while True:
+                chunk = await file.read(UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Max {MAX_UPLOAD_MB} MB.",
+                    )
+                buffer.write(chunk)
+    except BaseException:
+        destination.unlink(missing_ok=True) 
+        raise
+    finally:
+        await file.close()
 
     content_type = (file.content_type or "").lower()
     source_type = "document"
