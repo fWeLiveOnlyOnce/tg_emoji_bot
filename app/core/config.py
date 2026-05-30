@@ -26,6 +26,7 @@ def _safe_resolve(path_value: str, *, base_dir: Path) -> Path:
 @dataclass(frozen=True)
 class Settings:
     bot_token: str
+    bot_username: str
     api_id: int
     api_hash: str
     phone_number: str
@@ -43,6 +44,7 @@ class Settings:
 
 def load_settings() -> Settings:
     bot_token = _require_env("BOT_TOKEN")
+    bot_username = _require_env("BOT_USERNAME").lstrip("@").strip()
     api_id = int(_require_env("API_ID"))
     api_hash = _require_env("API_HASH")
     phone_number = _require_env("PHONE_NUMBER")
@@ -64,6 +66,7 @@ def load_settings() -> Settings:
 
     return Settings(
         bot_token=bot_token,
+        bot_username=bot_username,
         api_id=api_id,
         api_hash=api_hash,
         phone_number=phone_number,

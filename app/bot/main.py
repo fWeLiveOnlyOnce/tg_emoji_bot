@@ -95,8 +95,7 @@ async def set_bot_commands(bot: Bot) -> None:
     )
     
 def make_short_name_candidate(base: str, bot_username: str, suffix_part: str | None = None) -> str:
-    # ending = f"_by_{bot_username.lower()}"
-    ending = f"_by_fastlife"
+    ending = f"_by_{bot_username.lower()}"
     if suffix_part:
         raw_base = f"{base}_{suffix_part}"
     else:
@@ -158,9 +157,7 @@ def build_short_name(title: str, bot_username: str) -> str:
         base = f"e_{base}"
 
     base = re.sub(r"_+", "_", base).strip("_")
-    # suffix = f"_by_{bot_username.lower()}"
-    suffix = f"_by_fastlife"
-
+    suffix = f"_by_{bot_username.lower()}"
     max_base_len = 64 - len(suffix)
     base = base[:max_base_len].strip("_")
 
