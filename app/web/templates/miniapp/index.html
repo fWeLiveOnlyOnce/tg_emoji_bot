@@ -148,8 +148,27 @@
         <div data-job-result class="miniapp-result" hidden></div>
       
         <div class="miniapp-field">
-          <label for="pack-file">Файл</label>
-          <input id="pack-file" type="file" data-pack-file>
+          <div class="miniapp-label">Файл</div>
+          <div
+            class="dropzone"
+            data-dropzone
+            tabindex="0"
+            role="button"
+            aria-label="Перетащите файл сюда или выберите вручную"
+          >
+            <input
+              id="pack-file"
+              type="file"
+              data-pack-file
+              accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov"
+              hidden
+            >
+            <div class="dropzone__icon" aria-hidden="true">⬆</div>
+            <p class="dropzone__title">Перетащите файл сюда</p>
+            <p class="dropzone__hint">JPG, PNG, WEBP, GIF, MP4, WEBM, MOV · до 50 МБ</p>
+            <button type="button" class="dropzone__button" data-pick-file>Выбрать файл</button>
+            <p class="dropzone__filename" data-file-name hidden></p>
+          </div>
         </div>
       
         <div class="miniapp-field">

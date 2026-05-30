@@ -500,3 +500,72 @@
   button.is-active {
     outline: 2px solid #4da3ff;
   }
+
+  .dropzone {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--surface) 84%, black 16%);
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color var(--transition-fast),
+      background-color var(--transition-fast);
+  }
+  
+  .dropzone:hover,
+  .dropzone:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--button) 50%, var(--border-strong));
+  }
+  
+  .dropzone.is-dragover {
+    border-color: var(--button);
+    background: color-mix(in srgb, var(--button) 14%, var(--surface));
+  }
+  
+  .dropzone.has-file {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--success) 50%, var(--border-strong));
+  }
+  
+  .dropzone__icon {
+    font-size: 26px;
+    color: var(--button);
+  }
+  
+  .dropzone__title {
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  .dropzone__hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  
+  .dropzone__button {
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: var(--button);
+    color: var(--button-text);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .dropzone__button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  
+  .dropzone__filename {
+    margin: 4px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }

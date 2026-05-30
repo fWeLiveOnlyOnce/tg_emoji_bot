@@ -297,6 +297,86 @@ async function handleCreateClick() {
   }
 }
 
+const ALLOWED_UPLOAD_EXTENSIONS = [
+  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov",
+];
+
+function hasAllowedExtension(name) {
+  const lower = (name || "").toLowerCase();
+  return ALLOWED_UPLOAD_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function renderSelectedFile(file) {
+  const dropzone = document.querySelector("[data-dropzone]");
+  const nameEl = document.querySelector("[data-file-name]");
+
+  if (nameEl) {
+    nameEl.textContent = file ? `Выбран файл: ${file.name}` : "";
+    nameEl.hidden = !file;
+  }
+
+  dropzone?.classList.toggle("has-file", Boolean(file));
+}
+
+function setSelectedFile(fileList) {
+  const fileInput = document.querySelector("[data-pack-file]");
+  if (!fileInput || !fileList || fileList.length === 0) return;
+
+  const file = fileList[0];
+  if (!hasAllowedExtension(file.name)) {
+    renderStatus("Неподдерживаемый формат файла.", "error");
+    return;
+  }
+
+  fileInput.files = fileList;
+  renderSelectedFile(file);
+}
+
+function bindFileDropzone() {
+  const dropzone = document.querySelector("[data-dropzone]");
+  const fileInput = document.querySelector("[data-pack-file]");
+  const pickButton = document.querySelector("[data-pick-file]");
+  if (!dropzone || !fileInput) return;
+
+  const openPicker = () => fileInput.click();
+
+  pickButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openPicker();
+  });
+
+  dropzone.addEventListener("click", openPicker);
+
+  dropzone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openPicker();
+    }
+  });
+
+  fileInput.addEventListener("change", () => {
+    renderSelectedFile(fileInput.files?.[0] || null);
+  });
+
+  ["dragenter", "dragover"].forEach((type) => {
+    dropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      dropzone.classList.add("is-dragover");
+    });
+  });
+
+  ["dragleave", "dragend", "drop"].forEach((type) => {
+    dropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      dropzone.classList.remove("is-dragover");
+    });
+  });
+
+  dropzone.addEventListener("drop", (event) => {
+    setSelectedFile(event.dataTransfer?.files);
+  });
+}
+
 function bindUi() {
   document.querySelectorAll("[data-orientation]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -313,6 +393,7 @@ function bindUi() {
 
   const createButton = document.querySelector("[data-create-pack]");
   createButton?.addEventListener("click", handleCreateClick);
+  bindFileDropzone();
 }
 
 async function bootstrap() {
