@@ -24,6 +24,7 @@ const state = {
   submitting: false,
   jobActive: false,
   addToShortName: null,
+  addToTitle: null,
   
 };
 
@@ -51,6 +52,9 @@ function cacheEls() {
   els.history = document.querySelector("[data-history]");
   els.historyRefresh = document.querySelector("[data-history-refresh]");
   els.themeGroup = document.querySelector("[data-theme-group]");
+	els.addBanner = document.querySelector("[data-addbanner]");
+	els.addBannerName = document.querySelector("[data-addbanner-name]");
+	els.addBannerCancel = document.querySelector("[data-addbanner-cancel]");
 }
 
 /* ---------- Тема ---------- */
@@ -432,12 +436,15 @@ function getFile() {
 }
 
 function isFormComplete() {
-  return Boolean(
-    getFile() &&
-    els.title.value.trim() &&
-    state.orientation &&
-    state.gridCode
-  );
+	if (state.addToShortName) {
+		return Boolean(getFile() && state.orientation && state.gridCode);
+	}
+	return Boolean(
+		getFile() &&
+		els.title.value.trim() &&
+		state.orientation &&
+		state.gridCode
+	);
 }
 
 function updateSubmitState() {
@@ -449,13 +456,15 @@ function updateSubmitState() {
 }
 
 function refreshSubmitLabel() {
-  if (state.submitting) {
-    els.submit.textContent = "Создаём…";
-  } else if (state.jobActive) {
-    els.submit.textContent = "Пак собирается…";
-  } else {
-    els.submit.textContent = "Создать пак";
-  }
+	if (state.submitting) {
+		els.submit.textContent = "Создаём…";
+	} else if (state.jobActive) {
+		els.submit.textContent = "Пак собирается…";
+	} else if (state.addToShortName) {
+		els.submit.textContent = "Добавить в пак";
+	} else {
+		els.submit.textContent = "Создать пак";
+	}
 }
 
 function setSubmitting(flag) {
@@ -477,7 +486,9 @@ async function handleSubmit(event) {
 
   const file = getFile();
   const body = {
-    title: els.title.value.trim(),
+    title: state.addToShortName
+      ? state.addToTitle || "Добавление в пак"
+      : els.title.value.trim(),
     orientation: state.orientation,
     grid_code: state.gridCode,
   };
@@ -504,6 +515,7 @@ async function handleSubmit(event) {
     renderResult(started);
     renderStatus(`Задача создана. Статус: ${statusLabel(started.status)}`, "info");
     startPolling(created.public_id);
+    setAddToPack(null);
   } catch (err) {
     renderStatus(err.message || "Не удалось создать пак.", "error");
   } finally {
@@ -573,18 +585,21 @@ function renderResult(job) {
 }
 
 function setAddToPack(shortName, title) {
-  state.addToShortName = shortName || null;
-  const banner = document.querySelector("[data-addbanner]");
-  if (banner) {
-    if (shortName) {
-      banner.hidden = false;
-      banner.querySelector("[data-addbanner-name]").textContent = title || shortName;
-    } else {
-      banner.hidden = true;
-    }
-  }
-  refreshSubmitLabel();
-  syncMainButton?.();
+	state.addToShortName = shortName || null;
+	state.addToTitle = title || null;
+	const titleField = els.title.closest(".field") || els.title;
+	if (els.addBanner) {
+		els.addBanner.hidden = !shortName;
+		if (shortName && els.addBannerName) {
+			els.addBannerName.textContent = title || shortName;
+		}
+	}
+	// В режиме добавления имя пака не меняется — прячем поле названия.
+	if (titleField) {
+		titleField.hidden = Boolean(shortName);
+	}
+	refreshSubmitLabel();
+	updateSubmitState();
 }
 
 async function copyPackLink(url) {
@@ -624,41 +639,82 @@ async function loadHistory() {
 }
 
 function renderHistory(items) {
-  if (!items.length) {
-    els.history.innerHTML = `<p class="muted">Пока нет созданных паков.</p>`;
-    return;
-  }
-  els.history.innerHTML = items
-    .map((item) => {
-      const kind = historyBadgeKind(item.status);
-      const meta = [
-        state.orientationOptions[item.orientation] || item.orientation,
-        item.grid_code,
-        formatDate(item.created_at),
-      ]
-        .filter(Boolean)
-        .map((part) => escapeHtml(String(part)))
-        .join(" · ");
+	if (!items.length) {
+		els.history.innerHTML = `<p class="history__empty">Пока нет созданных паков.</p>`;
+		return;
+	}
+	els.history.innerHTML = items
+		.map((item) => {
+			const kind = historyBadgeKind(item.status);
+			const meta = [
+				state.orientationOptions[item.orientation] || item.orientation,
+				item.grid_code,
+				formatDate(item.created_at),
+			]
+				.filter(Boolean)
+				.map((part) => escapeHtml(String(part)))
+				.join(" · ");
 
-      const canManage = item.status === "done" && item.pack_url && item.short_name;
-      const actions = canManage
-        ? `<div class="history-actions">
-             <a class="pill" href="${escapeHtml(item.pack_url)}" target="_blank" rel="noopener">Открыть</a>
-             <button type="button" class="pill" data-copy="${escapeHtml(item.pack_url)}">Копировать ссылку</button>
-             <button type="button" class="pill" data-add="${escapeHtml(item.short_name)}" data-add-title="${escapeHtml(item.title || "")}">Добавить ещё</button>
-           </div>`
-        : "";
+			const canManage =
+				item.status === "done" && item.pack_url && item.short_name;
+			const actions = canManage
+				? `<div class="history__actions">
+						<a class="pill pill--sm" href="${escapeHtml(item.pack_url)}" target="_blank" rel="noopener">Открыть</a>
+						<button type="button" class="pill pill--sm" data-copy="${escapeHtml(item.pack_url)}">Копировать</button>
+						<button type="button" class="pill pill--sm" data-add="${escapeHtml(item.short_name)}" data-add-title="${escapeHtml(item.title || "")}">Добавить ещё</button>
+					</div>`
+				: "";
 
-      return `<div class="history-item">
-          <div class="history-row">
-            <span class="history-title">${escapeHtml(item.title || "Без названия")}</span>
-            <span class="badge" data-kind="${kind}">${escapeHtml(statusLabel(item.status))}</span>
-          </div>
-          <div class="history-meta">${meta}</div>
-          ${actions}
-        </div>`;
-    })
-    .join("");
+			return `<div class="history__item">
+					<div class="history__row">
+						<h3 class="history__title">${escapeHtml(item.title || "Без названия")}</h3>
+						<span class="badge" data-kind="${kind}">${escapeHtml(statusLabel(item.status))}</span>
+					</div>
+					<p class="history__meta">${meta}</p>
+					${actions}
+				</div>`;
+		})
+		.join("");
+}
+
+function setAddToPack(shortName, title) {
+	state.addToShortName = shortName || null;
+	if (els.addBanner) {
+		if (shortName) {
+			els.addBanner.hidden = false;
+			if (els.addBannerName) {
+				els.addBannerName.textContent = title || shortName;
+			}
+		} else {
+			els.addBanner.hidden = true;
+		}
+	}
+	refreshSubmitLabel();
+}
+
+async function copyPackLink(url) {
+	try {
+		await navigator.clipboard.writeText(url);
+		renderStatus("Ссылка скопирована.", "success");
+	} catch {
+		renderStatus("Не удалось скопировать ссылку.", "error");
+	}
+}
+
+function bindHistoryActions() {
+	els.history.addEventListener("click", (event) => {
+		const copyBtn = event.target.closest("[data-copy]");
+		if (copyBtn) {
+			copyPackLink(copyBtn.dataset.copy);
+			return;
+		}
+		const addBtn = event.target.closest("[data-add]");
+		if (addBtn) {
+			setAddToPack(addBtn.dataset.add, addBtn.dataset.addTitle);
+			setActiveTab("create");
+			renderStatus("Выберите файл — эмодзи добавятся в выбранный пак.", "info");
+		}
+	});
 }
 
 function bindHistoryActions() {
@@ -679,16 +735,14 @@ function bindHistoryActions() {
 
 /* ---------- Старт ---------- */
 function bindUi() {
-  els.form.addEventListener("submit", handleSubmit);
-  els.title.addEventListener("input", updateSubmitState);
-  bindDropzone();
-  bindTabs();
-  bindThemeControls();
-  bindHistoryActions()
-  document
-    .querySelector("[data-addbanner-cancel]")
-    ?.addEventListener("click", () => setAddToPack(null));
-  els.historyRefresh?.addEventListener("click", loadHistory);
+	els.form.addEventListener("submit", handleSubmit);
+	els.title.addEventListener("input", updateSubmitState);
+	bindDropzone();
+	bindTabs();
+	bindThemeControls();
+	bindHistoryActions();
+	els.historyRefresh?.addEventListener("click", loadHistory);
+	els.addBannerCancel?.addEventListener("click", () => setAddToPack(null));
 }
 
 async function bootstrap() {

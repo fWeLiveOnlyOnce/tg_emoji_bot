@@ -68,10 +68,7 @@
         <div class="form__config" data-config hidden>
           <div class="field">
             <label class="field__label" for="pack-title">Название пака</label>
-            <div class="add-banner" data-addbanner hidden>
-              <span>Добавляем в пак: <b data-addbanner-name></b></span>
-              <button type="button" class="link-btn" data-addbanner-cancel>Отменить</button>
-            </div>
+    
             <input
               id="pack-title"
               class="input"
@@ -81,6 +78,10 @@
               placeholder="Например, My Cats"
               autocomplete="off"
             />
+          </div>
+          <div class="add-banner" data-addbanner hidden>
+            <span>➕ Добавляем эмодзи в пак: <b data-addbanner-name></b> · имя пака не меняется</span>
+            <button type="button" class="link-btn" data-addbanner-cancel>Отменить</button>
           </div>
 
           <div class="field">

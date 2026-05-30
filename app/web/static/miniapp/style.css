@@ -601,3 +601,51 @@ input {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* ===== Действия в истории ===== */
+.history__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.pill--sm {
+	min-height: 34px;
+	padding: 0 12px;
+	font-size: 13px;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+}
+
+/* ===== Баннер «добавляем в пак» ===== */
+.add-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	border-radius: var(--radius-sm);
+	background: var(--accent-soft);
+	color: var(--text);
+	font-size: 14px;
+}
+
+.add-banner b {
+	font-weight: 700;
+}
+
+.link-btn {
+	border: none;
+	background: none;
+	color: var(--accent);
+	font-weight: 600;
+	cursor: pointer;
+	padding: 4px 6px;
+	border-radius: 8px;
+}
+
+.link-btn:hover {
+	text-decoration: underline;
+}
