@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 import os
 
@@ -41,7 +42,7 @@ class Settings:
     logs_dir: Path
     max_parallel_jobs: int
 
-
+@lru_cache(maxsize=1)
 def load_settings() -> Settings:
     bot_token = _require_env("BOT_TOKEN")
     bot_username = _require_env("BOT_USERNAME").lstrip("@").strip()
