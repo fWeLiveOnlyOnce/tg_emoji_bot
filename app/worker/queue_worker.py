@@ -17,7 +17,10 @@ from app.db.repository import (
 )
 from app.services.converter import convert_job_to_tiles, ConversionError
 from app.services.storage import remove_job_input_dir
-from app.services.telegram_publisher import create_custom_emoji_pack
+from app.services.telegram_publisher import (
+    create_custom_emoji_pack,
+    add_tiles_to_existing_pack,
+)
 
 logger = setup_logging()
 
@@ -52,15 +55,15 @@ async def process_job(job, bot: Bot) -> str:
     settings = load_settings()
 
     conversion = convert_job_to_tiles(job, settings.output_dir)
-    pack_url = await create_custom_emoji_pack(job, conversion)
+
+    if job.target_short_name:
+        pack_url = await add_tiles_to_existing_pack(job, conversion)
+    else:
+        pack_url = await create_custom_emoji_pack(job, conversion)
 
     await notify_pack_ready(bot, job.chat_id, pack_url)
 
-    remove_job_input_dir(settings.input_dir, job.public_id)
-    remove_job_output_dir(settings.output_dir, job.public_id)
-
     return pack_url
-
 
 async def main() -> None:
     settings = load_settings()

@@ -21,6 +21,10 @@ const state = {
   pollTimer: null,
   submitting: false,
   jobActive: false,
+  submitting: false,
+  jobActive: false,
+  addToShortName: null,
+  
 };
 
 const els = {};
@@ -477,6 +481,9 @@ async function handleSubmit(event) {
     orientation: state.orientation,
     grid_code: state.gridCode,
   };
+  if (state.addToShortName) {
+    body.add_to_short_name = state.addToShortName;
+  }
 
   setSubmitting(true);
   stopPolling();
@@ -565,6 +572,30 @@ function renderResult(job) {
   els.result.hidden = false;
 }
 
+function setAddToPack(shortName, title) {
+  state.addToShortName = shortName || null;
+  const banner = document.querySelector("[data-addbanner]");
+  if (banner) {
+    if (shortName) {
+      banner.hidden = false;
+      banner.querySelector("[data-addbanner-name]").textContent = title || shortName;
+    } else {
+      banner.hidden = true;
+    }
+  }
+  refreshSubmitLabel();
+  syncMainButton?.();
+}
+
+async function copyPackLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("Ссылка скопирована", "success");
+  } catch {
+    showToast("Не удалось скопировать", "error");
+  }
+}
+
 /* ---------- История ---------- */
 function historyBadgeKind(status) {
   if (status === "done") return "success";
@@ -594,7 +625,7 @@ async function loadHistory() {
 
 function renderHistory(items) {
   if (!items.length) {
-    els.history.innerHTML = `<p class="history__empty">Пока нет созданных паков.</p>`;
+    els.history.innerHTML = `<p class="muted">Пока нет созданных паков.</p>`;
     return;
   }
   els.history.innerHTML = items
@@ -608,18 +639,42 @@ function renderHistory(items) {
         .filter(Boolean)
         .map((part) => escapeHtml(String(part)))
         .join(" · ");
-      const link = item.pack_url
-        ? `<a class="btn btn--primary btn--sm history__link" href="${escapeHtml(
-            item.pack_url
-          )}" target="_blank" rel="noopener">Открыть пак</a>`
+
+      const canManage = item.status === "done" && item.pack_url && item.short_name;
+      const actions = canManage
+        ? `<div class="history-actions">
+             <a class="pill" href="${escapeHtml(item.pack_url)}" target="_blank" rel="noopener">Открыть</a>
+             <button type="button" class="pill" data-copy="${escapeHtml(item.pack_url)}">Копировать ссылку</button>
+             <button type="button" class="pill" data-add="${escapeHtml(item.short_name)}" data-add-title="${escapeHtml(item.title || "")}">Добавить ещё</button>
+           </div>`
         : "";
-      return `<article class="history__item"><div class="history__row"><h3 class="history__title">${escapeHtml(
-        item.title || "Без названия"
-      )}</h3><span class="badge" data-kind="${kind}">${escapeHtml(
-        statusLabel(item.status)
-      )}</span></div><p class="history__meta">${meta}</p>${link}</article>`;
+
+      return `<div class="history-item">
+          <div class="history-row">
+            <span class="history-title">${escapeHtml(item.title || "Без названия")}</span>
+            <span class="badge" data-kind="${kind}">${escapeHtml(statusLabel(item.status))}</span>
+          </div>
+          <div class="history-meta">${meta}</div>
+          ${actions}
+        </div>`;
     })
     .join("");
+}
+
+function bindHistoryActions() {
+  els.history.addEventListener("click", (event) => {
+    const copyBtn = event.target.closest("[data-copy]");
+    if (copyBtn) {
+      copyPackLink(copyBtn.dataset.copy);
+      return;
+    }
+    const addBtn = event.target.closest("[data-add]");
+    if (addBtn) {
+      setAddToPack(addBtn.dataset.add, addBtn.dataset.addTitle);
+      setActiveTab("create");
+      showToast("Выберите файл — эмодзи добавятся в этот пак", "info");
+    }
+  });
 }
 
 /* ---------- Старт ---------- */
@@ -629,6 +684,10 @@ function bindUi() {
   bindDropzone();
   bindTabs();
   bindThemeControls();
+  bindHistoryActions()
+  document
+    .querySelector("[data-addbanner-cancel]")
+    ?.addEventListener("click", () => setAddToPack(null));
   els.historyRefresh?.addEventListener("click", loadHistory);
 }
 

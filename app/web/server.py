@@ -90,6 +90,15 @@ class CreateJobRequest(BaseModel):
     title: str = Field(min_length=1, max_length=64)
     orientation: str = Field(min_length=1, max_length=32)
     grid_code: str = Field(min_length=1, max_length=32)
+    add_to_short_name: str | None = Field(default=None, max_length=64)
+
+    @field_validator("add_to_short_name")
+    @classmethod
+    def validate_add_to_short_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
     @field_validator("title")
     @classmethod
@@ -328,6 +337,7 @@ async def create_miniapp_job(
         grid_code=payload.grid_code,
         title=payload.title,
         short_name=short_name,
+        target_short_name=payload.add_to_short_name,
     )
 
     updated = get_job_by_public_id_for_user(job.public_id, verified.user.id)

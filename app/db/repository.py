@@ -31,6 +31,9 @@ class JobRecord:
     updated_at: str
     started_at: Optional[str]
     finished_at: Optional[str]
+    target_short_name: Optional[str] = None
+    trim_start: float = 0.0
+    trim_duration: Optional[float] = None
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -62,6 +65,9 @@ def _row_to_job(row: sqlite3.Row) -> JobRecord:
         updated_at=row["updated_at"],
         started_at=row["started_at"],
         finished_at=row["finished_at"],
+        target_short_name=row["target_short_name"],
+        trim_start=row["trim_start"] if row["trim_start"] is not None else 0.0,
+        trim_duration=row["trim_duration"],
     )
 
 
@@ -227,6 +233,9 @@ def update_job_selection(
     grid_code: Optional[str] = None,
     title: Optional[str] = None,
     short_name: Optional[str] = None,
+    target_short_name: Optional[str] = None,
+    trim_start: Optional[float] = None,
+    trim_duration: Optional[float] = None,
 ) -> None:
     with closing(_get_connection()) as conn, conn:
         conn.execute(
@@ -236,12 +245,15 @@ def update_job_selection(
                 grid_code = COALESCE(?, grid_code),
                 title = COALESCE(?, title),
                 short_name = COALESCE(?, short_name),
+                target_short_name = COALESCE(?, target_short_name),
+                trim_start = COALESCE(?, trim_start),
+                trim_duration = COALESCE(?, trim_duration),
                 updated_at = CURRENT_TIMESTAMP
             WHERE public_id = ?
             """,
-            (orientation, grid_code, title, short_name, public_id),
+            (orientation, grid_code, title, short_name,
+             target_short_name, trim_start, trim_duration, public_id),
         )
-
 
 def set_job_title_and_short_name(public_id: str, title: str, short_name: str) -> None:
     with closing(_get_connection()) as conn, conn:

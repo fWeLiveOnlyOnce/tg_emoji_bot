@@ -17,7 +17,7 @@
         <h1 class="app__title">Emoji Pack Builder</h1>
       </div>
     </header>
-    
+
     <!-- ВКЛАДКА: МЕНЮ (ИСТОРИЯ) -->
     <section class="view" data-view="history" hidden>
       <div class="view__head">
@@ -68,6 +68,10 @@
         <div class="form__config" data-config hidden>
           <div class="field">
             <label class="field__label" for="pack-title">Название пака</label>
+            <div class="add-banner" data-addbanner hidden>
+              <span>Добавляем в пак: <b data-addbanner-name></b></span>
+              <button type="button" class="link-btn" data-addbanner-cancel>Отменить</button>
+            </div>
             <input
               id="pack-title"
               class="input"
