@@ -33,6 +33,7 @@ function cacheEls() {
   els.previewMedia = document.querySelector("[data-preview-media]");
   els.fileName = document.querySelector("[data-file-name]");
   els.clear = document.querySelector("[data-clear]");
+  els.config = document.querySelector("[data-config]");
   els.title = document.querySelector("[data-title]");
   els.orientationGroup = document.querySelector("[data-orientation-group]");
   els.gridGroup = document.querySelector("[data-grid-group]");
@@ -41,7 +42,7 @@ function cacheEls() {
   els.result = document.querySelector("[data-result]");
 }
 
-/* ---------- Тема: белая в светлой, серая в тёмной ---------- */
+/* ---------- Тема ---------- */
 function applyTheme() {
   const scheme = tg?.colorScheme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = scheme;
@@ -198,6 +199,8 @@ function renderGridOptions(orientation) {
 
   if (codes.length > 0) {
     selectGrid(codes[0]);
+  } else {
+    updateSubmitState();
   }
 }
 
@@ -206,6 +209,7 @@ function selectGrid(code) {
   [...els.gridGroup.children].forEach((pill) => {
     pill.classList.toggle("is-active", pill.dataset.value === code);
   });
+  updateSubmitState();
 }
 
 /* ---------- Файл и превью ---------- */
@@ -224,18 +228,23 @@ function clearPreview() {
     URL.revokeObjectURL(state.previewUrl);
     state.previewUrl = null;
   }
-  els.previewMedia.innerHTML = "";
+  const prev = els.previewMedia.querySelector("img, video");
+  if (prev) prev.remove();
   els.fileName.textContent = "";
   els.preview.hidden = true;
   els.dropzoneEmpty.hidden = false;
   els.dropzone.classList.remove("has-file");
+  els.config.hidden = true;
+  updateSubmitState();
 }
 
 function renderPreview(file) {
   if (state.previewUrl) {
     URL.revokeObjectURL(state.previewUrl);
   }
-  els.previewMedia.innerHTML = "";
+  const prev = els.previewMedia.querySelector("img, video");
+  if (prev) prev.remove();
+
   state.previewUrl = URL.createObjectURL(file);
 
   let media;
@@ -255,17 +264,24 @@ function renderPreview(file) {
     media.src = state.previewUrl;
     media.alt = file.name;
   }
-  els.previewMedia.appendChild(media);
+  els.previewMedia.insertBefore(media, els.fileName);
   els.fileName.textContent = file.name;
 
   els.dropzoneEmpty.hidden = true;
   els.preview.hidden = false;
   els.dropzone.classList.add("has-file");
+  els.config.hidden = false;
+  updateSubmitState();
 }
 
-function acceptFile(file) {
-  if (!file) return;
+function handleFile(file) {
+  if (!file) {
+    clearPreview();
+    return;
+  }
   if (!hasAllowedExtension(file.name)) {
+    els.fileInput.value = "";
+    clearPreview();
     renderStatus(
       "Неподдерживаемый формат. Разрешены JPG, PNG, WEBP, GIF, MP4, WEBM, MOV.",
       "error"
@@ -289,8 +305,7 @@ function setDroppedFile(fileList) {
   const dataTransfer = new DataTransfer();
   dataTransfer.items.add(file);
   els.fileInput.files = dataTransfer.files;
-  renderPreview(file);
-  renderStatus("", "info");
+  handleFile(file);
 }
 
 function bindDropzone() {
@@ -315,22 +330,7 @@ function bindDropzone() {
   });
 
   els.fileInput.addEventListener("change", () => {
-    const file = els.fileInput.files?.[0] || null;
-    if (!file) {
-      clearPreview();
-      return;
-    }
-    if (!hasAllowedExtension(file.name)) {
-      els.fileInput.value = "";
-      clearPreview();
-      renderStatus(
-        "Неподдерживаемый формат. Разрешены JPG, PNG, WEBP, GIF, MP4, WEBM, MOV.",
-        "error"
-      );
-      return;
-    }
-    renderPreview(file);
-    renderStatus("", "info");
+    handleFile(els.fileInput.files?.[0] || null);
   });
 
   ["dragenter", "dragover"].forEach((type) => {
@@ -357,29 +357,33 @@ function getFile() {
   return els.fileInput.files?.[0] || null;
 }
 
-function setSubmitting(flag) {
-  state.submitting = flag;
-  els.submit.disabled = flag;
-  els.submit.textContent = flag ? "Создаём…" : "Создать пак";
+function isFormComplete() {
+  return Boolean(
+    getFile() &&
+    els.title.value.trim() &&
+    state.orientation &&
+    state.gridCode
+  );
 }
 
-function validateForm() {
-  if (!getFile()) return "Сначала выберите файл.";
-  if (!els.title.value.trim()) return "Введите название пака.";
-  if (!state.orientation) return "Выберите ориентацию.";
-  if (!state.gridCode) return "Выберите сетку.";
-  return null;
+function updateSubmitState() {
+  if (state.submitting) {
+    els.submit.disabled = true;
+    return;
+  }
+  els.submit.disabled = !isFormComplete();
+}
+
+function setSubmitting(flag) {
+  state.submitting = flag;
+  els.submit.textContent = flag ? "Создаём…" : "Создать пак";
+  updateSubmitState();
 }
 
 async function handleSubmit(event) {
   event.preventDefault();
   if (state.submitting) return;
-
-  const error = validateForm();
-  if (error) {
-    renderStatus(error, "error");
-    return;
-  }
+  if (!isFormComplete()) return;
 
   const file = getFile();
   const body = {
@@ -475,6 +479,7 @@ function renderResult(job) {
 /* ---------- Старт ---------- */
 function bindUi() {
   els.form.addEventListener("submit", handleSubmit);
+  els.title.addEventListener("input", updateSubmitState);
   bindDropzone();
 }
 
@@ -489,6 +494,7 @@ async function bootstrap() {
   }
 
   bindUi();
+  updateSubmitState();
 
   try {
     const auth = await authMiniApp();

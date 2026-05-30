@@ -242,17 +242,24 @@ input {
   color: var(--muted);
 }
 
+/* Поля появляются после выбора файла */
+.form__config {
+  display: grid;
+  gap: 20px;
+}
+
+/* Превью: миниатюра по центру, кнопка ровно под ней */
 .dropzone__preview {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
 }
 
 .preview__media {
-  flex: 0 0 auto;
-  width: 84px;
-  height: 84px;
+  position: relative;
+  width: 120px;
+  height: 120px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg);
@@ -268,16 +275,29 @@ input {
   object-fit: cover;
 }
 
-.preview__info {
-  min-width: 0;
-  display: grid;
-  gap: 8px;
+/* Имя файла — только при наведении на превью */
+.preview__name {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  margin: 0;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
 }
 
-.preview__name {
-  margin: 0;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+.preview__media:hover .preview__name,
+.preview__media:focus-within .preview__name {
+  opacity: 1;
 }
 
 /* Pills */

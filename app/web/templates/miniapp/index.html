@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Emoji Pack Builder</title>
+  <link rel="icon" href="/static/favicon.ico" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="/static/miniapp/style.css" />
 </head>
@@ -45,39 +46,40 @@
             <span class="btn btn--ghost">Выбрать файл</span>
           </div>
           <div class="dropzone__preview" data-preview hidden>
-            <div class="preview__media" data-preview-media></div>
-            <div class="preview__info">
-              <p class="preview__name" data-file-name></p>
-              <button type="button" class="btn btn--ghost btn--sm" data-clear>Заменить файл</button>
+            <div class="preview__media" data-preview-media>
+              <span class="preview__name" data-file-name></span>
             </div>
+            <button type="button" class="btn btn--ghost btn--sm" data-clear>Заменить файл</button>
           </div>
         </div>
       </div>
 
-      <div class="field">
-        <label class="field__label" for="pack-title">Название пака</label>
-        <input
-          id="pack-title"
-          class="input"
-          type="text"
-          data-title
-          maxlength="64"
-          placeholder="Например, My Cats"
-          autocomplete="off"
-        />
-      </div>
+      <div class="form__config" data-config hidden>
+        <div class="field">
+          <label class="field__label" for="pack-title">Название пака</label>
+          <input
+            id="pack-title"
+            class="input"
+            type="text"
+            data-title
+            maxlength="64"
+            placeholder="Например, My Cats"
+            autocomplete="off"
+          />
+        </div>
 
-      <div class="field">
-        <span class="field__label">Ориентация</span>
-        <div class="pills" data-orientation-group></div>
-      </div>
+        <div class="field">
+          <span class="field__label">Ориентация</span>
+          <div class="pills" data-orientation-group></div>
+        </div>
 
-      <div class="field">
-        <span class="field__label">Сетка</span>
-        <div class="pills" data-grid-group></div>
-      </div>
+        <div class="field">
+          <span class="field__label">Сетка</span>
+          <div class="pills" data-grid-group></div>
+        </div>
 
-      <button type="submit" class="btn btn--primary btn--block" data-submit>Создать пак</button>
+        <button type="submit" class="btn btn--primary btn--block" data-submit disabled>Создать пак</button>
+      </div>
     </form>
 
     <section class="card status" data-status hidden></section>

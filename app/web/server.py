@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -167,6 +167,7 @@ async def add_security_headers(request: Request, call_next):
         "script-src 'self' https://telegram.org; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: blob:; "
+        "media-src"
         "connect-src 'self'; "
         "font-src 'self' data:; "
         "object-src 'none'; "
@@ -243,6 +244,12 @@ def _job_response(job) -> JobResponse:
 async def healthcheck():
     return {"ok": True}
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    icon_path = STATIC_DIR / "favicon.ico"
+    if not icon_path.exists():
+        return Response(status_code=204)
+    return FileResponse(icon_path, media_type="image/x-icon")
 
 @app.get("/miniapp")
 async def miniapp_index():
