@@ -250,48 +250,67 @@ def normalize_video_source(job: JobRecord, output_dir: Path, cols: int, rows: in
     return normalized_path, duration
 
 
-def build_static_tiles(normalized_path: Path, tile_dir: Path, cols: int, rows: int) -> list[TileResult]:
-    results: list[TileResult] = []
-    index = 1
+def _build_static_tile(
+    normalized_path: Path,
+    tile_dir: Path,
+    index: int,
+    row: int,
+    col: int,
+) -> TileResult:
+    crop_x = col * EMOJI_SIZE
+    crop_y = row * EMOJI_SIZE
+    out_path = tile_dir / f"{index:02d}_r{row+1}c{col+1}.png"
+    vf = f"crop={EMOJI_SIZE}:{EMOJI_SIZE}:{crop_x}:{crop_y},format=rgba"
 
+    _run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(normalized_path),
+            "-vf",
+            vf,
+            "-frames:v",
+            "1",
+            str(out_path),
+        ],
+        title=f"build static tile r{row+1} c{col+1}",
+    )
+
+    return TileResult(
+        index=index,
+        row=row,
+        col=col,
+        path=out_path,
+        size_bytes=out_path.stat().st_size,
+        fps=None,
+        crf=None,
+        ok=True,
+    )
+
+def build_static_tiles(normalized_path: Path, tile_dir: Path, cols: int, rows: int) -> list[TileResult]:
+    tasks: list[tuple[int, int, int]] = []
+    index = 1
     for row in range(rows):
         for col in range(cols):
-            crop_x = col * EMOJI_SIZE
-            crop_y = row * EMOJI_SIZE
-            out_path = tile_dir / f"{index:02d}_r{row+1}c{col+1}.png"
-
-            vf = f"crop={EMOJI_SIZE}:{EMOJI_SIZE}:{crop_x}:{crop_y},format=rgba"
-
-            _run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
-                    str(normalized_path),
-                    "-vf",
-                    vf,
-                    "-frames:v",
-                    "1",
-                    str(out_path),
-                ],
-                title=f"build static tile r{row+1} c{col+1}",
-            )
-
-            size = out_path.stat().st_size
-            results.append(
-                TileResult(
-                    index=index,
-                    row=row,
-                    col=col,
-                    path=out_path,
-                    size_bytes=size,
-                    fps=None,
-                    crf=None,
-                    ok=True,
-                )
-            )
+            tasks.append((index, row, col))
             index += 1
 
+    results: list[TileResult] = []
+
+    if TILE_WORKERS <= 1 or len(tasks) <= 1:
+        for idx, row, col in tasks:
+            results.append(_build_static_tile(normalized_path, tile_dir, idx, row, col))
+    else:
+        with ThreadPoolExecutor(max_workers=TILE_WORKERS) as pool:
+            futures = [
+                pool.submit(_build_static_tile, normalized_path, tile_dir, idx, row, col)
+                for idx, row, col in tasks
+            ]
+            for future in futures:
+                results.append(future.result())
+
+    results.sort(key=lambda r: r.index)
     return results
 
 

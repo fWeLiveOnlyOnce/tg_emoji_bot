@@ -16,6 +16,7 @@ from app.bot.states import CreatePackStates
 from app.core.config import ensure_runtime_dirs, load_settings
 from app.db.repository import get_active_job_for_user
 from app.core.logging_config import setup_logging
+from app.domain.pack_naming import normalize_short_name_base, slugify_title
 from app.db.repository import (
     cancel_job,
     create_job,
@@ -45,45 +46,6 @@ GRID_OPTIONS = {
     "7x7": "7 × 7",
     "8x8": "8 × 8",
 }
-
-
-CYRILLIC_MAP = {
-    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d",
-    "е": "e", "ё": "e", "ж": "zh", "з": "z", "и": "i",
-    "й": "y", "к": "k", "л": "l", "м": "m", "н": "n",
-    "о": "o", "п": "p", "р": "r", "с": "s", "т": "t",
-    "у": "u", "ф": "f", "х": "h", "ц": "ts", "ч": "ch",
-    "ш": "sh", "щ": "sch", "ъ": "", "ы": "y", "ь": "",
-    "э": "e", "ю": "yu", "я": "ya",
-}
-
-
-def transliterate_ru(text: str) -> str:
-    result = []
-    for ch in text.lower():
-        result.append(CYRILLIC_MAP.get(ch, ch))
-    return "".join(result)
-
-
-def slugify_title(value: str) -> str:
-    value = value.strip().lower()
-    value = transliterate_ru(value)
-    value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-    value = re.sub(r"[^a-z0-9]+", "_", value)
-    value = re.sub(r"_+", "_", value).strip("_")
-    return value
-
-def normalize_short_name_base(title: str) -> str:
-    base = slugify_title(title)
-
-    if not base:
-        base = f"emoji_{secrets.token_hex(3)}"
-
-    if not base[0].isalpha():
-        base = f"e_{base}"
-
-    base = re.sub(r"_+", "_", base).strip("_")
-    return base
 
 async def set_bot_commands(bot: Bot) -> None:
     await bot.set_my_commands(
@@ -144,35 +106,6 @@ async def build_unique_short_name(title: str, bot_username: str, bot: Bot) -> st
         candidate = make_short_name_candidate(base, bot_username, secrets.token_hex(4))
         if not await is_sticker_set_name_taken(bot, candidate):
             return candidate
-
-def build_short_name(title: str, bot_username: str) -> str:
-    import secrets
-
-    base = slugify_title(title)
-
-    if not base:
-        base = f"emoji_{secrets.token_hex(3)}"
-
-    if not base[0].isalpha():
-        base = f"e_{base}"
-
-    base = re.sub(r"_+", "_", base).strip("_")
-    suffix = f"_by_{bot_username.lower()}"
-    max_base_len = 64 - len(suffix)
-    base = base[:max_base_len].strip("_")
-
-    if not base:
-        base = f"emoji_{secrets.token_hex(3)}"
-        base = base[:max_base_len].strip("_")
-
-    short_name = f"{base}{suffix}"
-    short_name = re.sub(r"__+", "_", short_name)
-
-    if len(short_name) > 64:
-        short_name = short_name[:64].rstrip("_")
-
-    return short_name
-
 
 def orientation_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
