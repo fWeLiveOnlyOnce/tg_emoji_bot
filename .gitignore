@@ -1,0 +1,47 @@
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+env/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+data/sessions/*.session
+data/sessions/*.session-journal
+logs/
+
+# Local databases
+*.db
+*.sqlite3
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE / editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Local uploaded/generated project data
+data/input/
+data/output/
+data/uploads/

@@ -1,0 +1,45 @@
+telethon
+aiogram
+python-dotenv
+aiosqlite
+aiofiles
+fastapi
+uvicorn
+
+# telegram_emoji_bot/
+#     app/
+#         auth/
+#             __init__.py
+#             telethon_login.py
+#         bot/
+#             __init__.py
+#             main.py
+#             states.py
+#         core/
+#             __init__.py
+#             congig.py
+#             logging_config.py
+#         db/
+#             __init__.py
+#             init_db.py
+#             repository.py
+#             schema.sql
+#         sevices/
+#             __init__.py
+#             converter.py
+#             storage.py
+#             telegram_publisher.py
+#         worker/
+#             __init__.py
+#             queue_worker.py
+#         __init__.py
+#     data/
+#         input/
+#         output/ 
+#         sessions/ 
+#         bot.sqlite3
+#     logs/
+#         logs/bot.log
+# .env 
+# .gitignore 
+# requirements.txt

@@ -1,0 +1,28 @@
+PRAGMA journal_mode=WAL;
+PRAGMA foreign_keys=ON;
+
+CREATE TABLE IF NOT EXISTS jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    public_id TEXT NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL,
+    chat_id INTEGER NOT NULL,
+    username TEXT,
+    source_type TEXT NOT NULL,
+    source_file_id TEXT,
+    source_file_path TEXT,
+    original_filename TEXT,
+    orientation TEXT,
+    grid_code TEXT,
+    title TEXT,
+    short_name TEXT,
+    status TEXT NOT NULL DEFAULT 'queued',
+    error_message TEXT,
+    pack_url TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TEXT,
+    finished_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_jobs_user_id_created_at ON jobs(user_id, created_at);

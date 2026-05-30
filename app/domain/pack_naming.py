@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+import re
+import secrets
+import unicodedata
+
+CYRILLIC_MAP = {
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "ё": "e",
+    "ж": "zh",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "h",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "sch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya",
+}
+
+
+def transliterate_ru(text: str) -> str:
+    return "".join(CYRILLIC_MAP.get(ch, ch) for ch in text.lower())
+
+
+def slugify_title(value: str) -> str:
+    value = value.strip().lower()
+    value = transliterate_ru(value)
+    value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    value = re.sub(r"[^a-z0-9]+", "_", value)
+    value = re.sub(r"_+", "_", value).strip("_")
+    return value
+
+
+def normalize_short_name_base(title: str) -> str:
+    base = slugify_title(title)
+    if not base:
+        base = f"emoji_{secrets.token_hex(3)}"
+    if not base[0].isalpha():
+        base = f"e_{base}"
+    base = re.sub(r"_+", "_", base).strip("_")
+    return base
+
+
+def build_short_name(title: str, bot_username: str) -> str:
+    base = normalize_short_name_base(title)
+    suffix = f"_by_{bot_username.lower()}"
+    max_base_len = 64 - len(suffix)
+    base = base[:max_base_len].strip("_")
+    if not base:
+        base = f"emoji_{secrets.token_hex(3)}"
+        base = base[:max_base_len].strip("_")
+    short_name = f"{base}{suffix}"
+    short_name = re.sub(r"_+", "_", short_name)
+    return short_name[:64].rstrip("_")
