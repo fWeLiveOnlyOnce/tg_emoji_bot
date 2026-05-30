@@ -649,3 +649,210 @@ input {
 .link-btn:hover {
 	text-decoration: underline;
 }
+
+/* ============================================================
+   ✨ АНИМАЦИИ И ПОЛИРОВКА UI  (дописано в конец)
+   ============================================================ */
+
+/* --- 1. Тайминги движения --- */
+:root {
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--motion-fast: 160ms;
+	--motion: 240ms;
+	--motion-slow: 420ms;
+}
+
+/* Уважаем системную настройку «меньше движения» */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* --- 2. Keyframes --- */
+@keyframes fadeInUp {
+	from { opacity: 0; transform: translateY(10px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+@keyframes popIn {
+	0%   { opacity: 0; transform: scale(0.85); }
+	60%  { transform: scale(1.04); }
+	100% { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+	0%   { background-position: -480px 0; }
+	100% { background-position:  480px 0; }
+}
+@keyframes pulseSoft {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.4; }
+}
+@keyframes sweep {
+	to { transform: translateX(100%); }
+}
+@keyframes toastIn {
+	from { opacity: 0; transform: translateY(16px) scale(0.96); }
+	to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+	to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+@keyframes confettiFall {
+	to { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* --- 3. Появление контента --- */
+.app__header { animation: fadeInUp var(--motion) var(--ease-out) both; }
+.logo { animation: popIn var(--motion-slow) var(--ease-spring) both; }
+.card { animation: fadeInUp var(--motion) var(--ease-out) both; }
+.view { animation: fadeIn var(--motion) var(--ease-out) both; }
+
+/* История: каскадное появление карточек */
+.history__item { animation: fadeInUp var(--motion) var(--ease-out) both; }
+.history__item:nth-child(1) { animation-delay: 40ms; }
+.history__item:nth-child(2) { animation-delay: 80ms; }
+.history__item:nth-child(3) { animation-delay: 120ms; }
+.history__item:nth-child(4) { animation-delay: 160ms; }
+.history__item:nth-child(5) { animation-delay: 200ms; }
+.history__item:nth-child(n+6) { animation-delay: 240ms; }
+
+/* Превью файла «выпрыгивает» */
+.dropzone__preview { animation: popIn var(--motion) var(--ease-spring) both; }
+
+/* --- 4. Микровзаимодействия (нажатия) --- */
+.btn,
+.pill,
+.tabbar__btn,
+.link-btn,
+.dropzone {
+	transition:
+		transform var(--motion-fast) var(--ease-out),
+		filter var(--transition),
+		background-color var(--transition),
+		border-color var(--transition),
+		color var(--transition),
+		box-shadow var(--transition);
+}
+.btn:active:not(:disabled),
+.pill:active,
+.link-btn:active { transform: scale(0.96); }
+.tabbar__btn:active { transform: scale(0.9); }
+
+/* Активный pill — мягкий «поп» */
+.pill.is-active { animation: popIn var(--motion) var(--ease-spring); }
+
+/* Иконка активной вкладки приподнимается */
+.tabbar__icon { transition: transform var(--motion) var(--ease-spring); }
+.tabbar__btn.is-active .tabbar__icon { transform: translateY(-2px) scale(1.12); }
+
+/* Dropzone живее реагирует */
+.dropzone__icon { transition: transform var(--motion) var(--ease-spring); }
+.dropzone:hover .dropzone__icon { transform: translateY(-3px); }
+.dropzone.is-dragover { transform: scale(1.012); }
+.dropzone.is-dragover .dropzone__icon { transform: scale(1.18) translateY(-2px); }
+
+/* Первичная кнопка чуть приподнимается на ховер */
+.btn--primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+
+/* --- 5. Кнопка в состоянии «собирается» --- */
+.btn.is-working {
+	position: relative;
+	overflow: hidden;
+	opacity: 1 !important;
+	cursor: progress;
+}
+.btn.is-working::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+	transform: translateX(-100%);
+	animation: sweep 1.25s ease-in-out infinite;
+}
+
+/* --- 6. Живой статус и бейджи в работе --- */
+.status[data-kind="info"]::before { animation: pulseSoft 1.4s ease-in-out infinite; }
+.badge[data-kind="info"] { animation: pulseSoft 1.8s ease-in-out infinite; }
+.result { animation: fadeInUp var(--motion) var(--ease-out) both; }
+
+/* --- 7. Тосты --- */
+.toast-host {
+	position: fixed;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: calc(96px + env(safe-area-inset-bottom));
+	z-index: 60;
+	display: grid;
+	gap: 8px;
+	width: min(92%, 420px);
+	pointer-events: none;
+}
+.toast {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 14px;
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	color: var(--text);
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow);
+	font-size: 14px;
+	font-weight: 600;
+	animation: toastIn var(--motion) var(--ease-spring) both;
+}
+.toast.is-leaving { animation: toastOut var(--motion-fast) var(--ease-out) forwards; }
+.toast::before {
+	content: "";
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--muted);
+	flex: 0 0 auto;
+}
+.toast[data-kind="success"]::before { background: var(--success); }
+.toast[data-kind="error"]::before { background: var(--danger); }
+.toast[data-kind="info"]::before { background: var(--accent); }
+
+/* --- 8. Скелетоны загрузки истории --- */
+.skeleton {
+	border-radius: var(--radius);
+	background: linear-gradient(
+		90deg,
+		var(--surface-2) 25%,
+		color-mix(in srgb, var(--surface-2) 55%, var(--border)) 37%,
+		var(--surface-2) 63%
+	);
+	background-size: 480px 100%;
+	animation: shimmer 1.4s ease-in-out infinite;
+}
+.skeleton--item {
+	height: 84px;
+	margin-bottom: 12px;
+}
+
+/* --- 9. Конфетти на успех --- */
+.confetti {
+	position: fixed;
+	inset: 0;
+	z-index: 80;
+	pointer-events: none;
+	overflow: hidden;
+}
+.confetti span {
+	position: absolute;
+	top: -8%;
+	will-change: transform, opacity;
+	animation: confettiFall 1.5s var(--ease-out) forwards;
+}

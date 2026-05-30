@@ -114,9 +114,12 @@ function setActiveTab(name) {
 }
 
 function bindTabs() {
-  els.tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
-  });
+	els.tabButtons.forEach((btn) => {
+		btn.addEventListener("click", () => {
+			haptic("light");
+			setActiveTab(btn.dataset.tab);
+		});
+	});
 }
 
 /* ---------- API ---------- */
@@ -222,6 +225,66 @@ function renderStatus(message, kind = "info") {
   els.status.dataset.kind = kind;
 }
 
+/* ---------- Тосты, вибро, конфетти ---------- */
+let toastHost = null;
+
+function ensureToastHost() {
+	if (!toastHost) {
+		toastHost = document.createElement("div");
+		toastHost.className = "toast-host";
+		document.body.appendChild(toastHost);
+	}
+	return toastHost;
+}
+
+function showToast(message, kind = "info", timeout = 2600) {
+	if (!message) return;
+	const host = ensureToastHost();
+	const toast = document.createElement("div");
+	toast.className = "toast";
+	toast.dataset.kind = kind;
+	toast.textContent = message;
+	host.appendChild(toast);
+	const remove = () => {
+		toast.classList.add("is-leaving");
+		toast.addEventListener("animationend", () => toast.remove(), { once: true });
+	};
+	setTimeout(remove, timeout);
+}
+
+function haptic(type = "light") {
+	const h = tg?.HapticFeedback;
+	if (!h) return;
+	try {
+		if (type === "success" || type === "error" || type === "warning") {
+			h.notificationOccurred(type);
+		} else {
+			h.impactOccurred(type); // light | medium | heavy | rigid | soft
+		}
+	} catch {
+		/* вибро может быть недоступно — игнорируем */
+	}
+}
+
+function celebrate() {
+	if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		return;
+	}
+	const layer = document.createElement("div");
+	layer.className = "confetti";
+	const pieces = ["🎉", "✨", "😎", "🥳", "⭐️", "🔥"];
+	for (let i = 0; i < 20; i++) {
+		const span = document.createElement("span");
+		span.textContent = pieces[i % pieces.length];
+		span.style.left = Math.random() * 100 + "%";
+		span.style.animationDelay = (Math.random() * 0.25).toFixed(2) + "s";
+		span.style.fontSize = (16 + Math.random() * 18).toFixed(0) + "px";
+		layer.appendChild(span);
+	}
+	document.body.appendChild(layer);
+	setTimeout(() => layer.remove(), 1900);
+}
+
 function statusLabel(status) {
   const map = {
     draft: "черновик",
@@ -251,6 +314,7 @@ function renderOrientationOptions() {
 
 function selectOrientation(code) {
   state.orientation = code;
+  haptic("light");
   [...els.orientationGroup.children].forEach((pill) => {
     pill.classList.toggle("is-active", pill.dataset.value === code);
   });
@@ -282,6 +346,7 @@ function renderGridOptions(orientation) {
 
 function selectGrid(code) {
   state.gridCode = code;
+  haptic("light");
   [...els.gridGroup.children].forEach((pill) => {
     pill.classList.toggle("is-active", pill.dataset.value === code);
   });
@@ -474,9 +539,10 @@ function setSubmitting(flag) {
 }
 
 function setJobActive(flag) {
-  state.jobActive = flag;
-  refreshSubmitLabel();
-  updateSubmitState();
+	state.jobActive = flag;
+	els.submit.classList.toggle("is-working", flag);
+	refreshSubmitLabel();
+	updateSubmitState();
 }
 
 async function handleSubmit(event) {
@@ -512,12 +578,13 @@ async function handleSubmit(event) {
 
     state.currentJob = started;
     setJobActive(true);
-    renderResult(started);
     renderStatus(`Задача создана. Статус: ${statusLabel(started.status)}`, "info");
     startPolling(created.public_id);
     setAddToPack(null);
   } catch (err) {
     renderStatus(err.message || "Не удалось создать пак.", "error");
+    showToast(err.message || "Не удалось создать пак.", "error");
+    haptic("error");
   } finally {
     setSubmitting(false);
   }
@@ -537,17 +604,23 @@ function startPolling(publicId) {
     try {
       const job = await fetchJob(publicId);
       state.currentJob = job;
-      renderResult(job);
 
       if (TERMINAL_STATUSES.includes(job.status)) {
         stopPolling();
         setJobActive(false);
         if (job.status === "done") {
-          renderStatus("Готово! Пак собран.", "success");
+          renderStatus("Готово! Пак собран — смотри в «Меню».", "success");
+          showToast("Готово! Пак собран 🎉 Открываю историю…", "success");
+          haptic("success");
+          celebrate();
+          setActiveTab("history");
         } else if (job.status === "failed") {
           renderStatus(job.error_message || "Задача завершилась с ошибкой.", "error");
+          showToast("Не удалось собрать пак", "error");
+          haptic("error");
         } else {
           renderStatus("Задача отменена.", "info");
+          haptic("warning");
         }
       } else {
         renderStatus(`Статус: ${statusLabel(job.status)}…`, "info");
@@ -587,28 +660,31 @@ function renderResult(job) {
 function setAddToPack(shortName, title) {
 	state.addToShortName = shortName || null;
 	state.addToTitle = title || null;
-	const titleField = els.title.closest(".field") || els.title;
+	const adding = Boolean(shortName);
+
 	if (els.addBanner) {
-		els.addBanner.hidden = !shortName;
-		if (shortName && els.addBannerName) {
+		els.addBanner.hidden = !adding;
+		if (adding && els.addBannerName) {
 			els.addBannerName.textContent = title || shortName;
 		}
 	}
-	// В режиме добавления имя пака не меняется — прячем поле названия.
-	if (titleField) {
-		titleField.hidden = Boolean(shortName);
+	if (els.title) {
+		els.title.disabled = adding;
+		els.title.readOnly = adding;
+		const titleField = els.title.closest(".field");
+		if (titleField) titleField.hidden = adding;
 	}
 	refreshSubmitLabel();
 	updateSubmitState();
 }
 
 async function copyPackLink(url) {
-  try {
-    await navigator.clipboard.writeText(url);
-    showToast("Ссылка скопирована", "success");
-  } catch {
-    showToast("Не удалось скопировать", "error");
-  }
+	try {
+		await navigator.clipboard.writeText(url);
+		showToast("Ссылка скопирована", "success");
+	} catch {
+		showToast("Не удалось скопировать", "error");
+	}
 }
 
 /* ---------- История ---------- */
@@ -627,15 +703,18 @@ function formatDate(value) {
 }
 
 async function loadHistory() {
-  els.history.innerHTML = `<p class="history__empty">Загрузка…</p>`;
-  try {
-    const data = await fetchHistory();
-    renderHistory(data.items || []);
-  } catch (err) {
-    els.history.innerHTML = `<p class="history__empty">${escapeHtml(
-      err.message || "Не удалось загрузить историю."
-    )}</p>`;
-  }
+	els.history.innerHTML =
+		'<div class="skeleton skeleton--item"></div>' +
+		'<div class="skeleton skeleton--item"></div>' +
+		'<div class="skeleton skeleton--item"></div>';
+	try {
+		const data = await fetchHistory();
+		renderHistory(data.items || []);
+	} catch (err) {
+		els.history.innerHTML = `<p class="history__empty">${escapeHtml(
+			err.message || "Не удалось загрузить историю."
+		)}</p>`;
+	}
 }
 
 function renderHistory(items) {
@@ -677,60 +756,23 @@ function renderHistory(items) {
 		.join("");
 }
 
-function setAddToPack(shortName, title) {
-	state.addToShortName = shortName || null;
-	if (els.addBanner) {
-		if (shortName) {
-			els.addBanner.hidden = false;
-			if (els.addBannerName) {
-				els.addBannerName.textContent = title || shortName;
-			}
-		} else {
-			els.addBanner.hidden = true;
-		}
-	}
-	refreshSubmitLabel();
-}
-
-async function copyPackLink(url) {
-	try {
-		await navigator.clipboard.writeText(url);
-		renderStatus("Ссылка скопирована.", "success");
-	} catch {
-		renderStatus("Не удалось скопировать ссылку.", "error");
-	}
-}
 
 function bindHistoryActions() {
 	els.history.addEventListener("click", (event) => {
 		const copyBtn = event.target.closest("[data-copy]");
 		if (copyBtn) {
+			haptic("light");
 			copyPackLink(copyBtn.dataset.copy);
 			return;
 		}
 		const addBtn = event.target.closest("[data-add]");
 		if (addBtn) {
+			haptic("medium");
 			setAddToPack(addBtn.dataset.add, addBtn.dataset.addTitle);
 			setActiveTab("create");
-			renderStatus("Выберите файл — эмодзи добавятся в выбранный пак.", "info");
+			showToast("Выберите файл — эмодзи добавятся в этот пак", "info");
 		}
 	});
-}
-
-function bindHistoryActions() {
-  els.history.addEventListener("click", (event) => {
-    const copyBtn = event.target.closest("[data-copy]");
-    if (copyBtn) {
-      copyPackLink(copyBtn.dataset.copy);
-      return;
-    }
-    const addBtn = event.target.closest("[data-add]");
-    if (addBtn) {
-      setAddToPack(addBtn.dataset.add, addBtn.dataset.addTitle);
-      setActiveTab("create");
-      showToast("Выберите файл — эмодзи добавятся в этот пак", "info");
-    }
-  });
 }
 
 /* ---------- Старт ---------- */
@@ -779,3 +821,4 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
+

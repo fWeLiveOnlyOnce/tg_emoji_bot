@@ -44,11 +44,11 @@ def remove_job_output_dir(base_output_dir: Path, public_id: str) -> None:
     shutil.rmtree(job_dir)
 
 
-async def notify_pack_ready(bot: Bot, chat_id: int, pack_url: str) -> None:
-    await bot.send_message(
-        chat_id=chat_id,
-        text=f"Пак готов.\n\n{pack_url}",
-    )
+# async def notify_pack_ready(bot: Bot, chat_id: int, pack_url: str) -> None:
+#     await bot.send_message(
+#         chat_id=chat_id,
+#         text=f"Пак готов.\n\n{pack_url}",
+#     )
 
 
 async def process_job(job, bot: Bot) -> str:
@@ -61,7 +61,7 @@ async def process_job(job, bot: Bot) -> str:
     else:
         pack_url = await create_custom_emoji_pack(job, conversion)
 
-    await notify_pack_ready(bot, job.chat_id, pack_url)
+    # await notify_pack_ready(bot, job.chat_id, pack_url)
 
     return pack_url
 
