@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import secrets
 from pathlib import Path
 
 from telethon import TelegramClient, functions, types
+from telethon.errors import RPCError
 from telethon.tl.types import DocumentAttributeFilename
 
 from app.core.config import load_settings
 from app.core.logging_config import setup_logging
 from app.db.repository import JobRecord
+from app.domain.pack_naming import build_short_name_with_token
 from app.services.converter import ConversionResult
 
 logger = setup_logging()
@@ -31,6 +34,46 @@ async def _build_client() -> TelegramClient:
         raise RuntimeError("Telethon session is not authorized")
 
     return client
+
+
+async def _is_short_name_available(client: TelegramClient, short_name: str) -> bool:
+    """True if the sticker set short_name is free on Telegram."""
+    try:
+        result = await client(
+            functions.stickers.CheckShortNameRequest(short_name=short_name)
+        )
+        return bool(result)
+    except RPCError as e:
+        # SHORT_NAME_OCCUPIED / SHORT_NAME_INVALID etc. -> not usable
+        logger.warning(f"check short_name '{short_name}' unavailable: {e}")
+        return False
+
+
+async def resolve_available_short_name(
+    title: str,
+    short_name: str,
+    bot_username: str,
+    max_attempts: int = 12,
+) -> str:
+    """Check the desired short_name BEFORE any conversion work.
+    Returns it unchanged if free, otherwise returns a unique variant."""
+    client = await _build_client()
+    try:
+        candidate = short_name
+        for _ in range(max_attempts):
+            if await _is_short_name_available(client, candidate):
+                if candidate != short_name:
+                    logger.info(
+                        f"short_name '{short_name}' occupied; using '{candidate}'"
+                    )
+                return candidate
+            token = secrets.token_hex(3)
+            candidate = build_short_name_with_token(title, bot_username, token)
+        raise RuntimeError(
+            "Не удалось подобрать свободное имя пака. Попробуйте другое название."
+        )
+    finally:
+        await client.disconnect()
 
 
 async def _upload_tile_as_document(
@@ -81,6 +124,7 @@ async def _upload_tile_as_document(
         file_reference=document.file_reference,
     )
 
+
 async def add_tiles_to_existing_pack(
     job: JobRecord,
     conversion: ConversionResult,
@@ -111,7 +155,8 @@ async def add_tiles_to_existing_pack(
         return f"https://t.me/addemoji/{job.target_short_name}"
     finally:
         await client.disconnect()
-        
+
+
 async def create_custom_emoji_pack(
     job: JobRecord,
     conversion: ConversionResult,
@@ -165,4 +210,3 @@ async def create_custom_emoji_pack(
 
     finally:
         await client.disconnect()
-        
