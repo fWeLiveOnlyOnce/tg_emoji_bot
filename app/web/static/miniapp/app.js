@@ -20,6 +20,7 @@ const state = {
   currentJob: null,
   pollTimer: null,
   submitting: false,
+  jobActive: false,
 };
 
 const els = {};
@@ -436,16 +437,32 @@ function isFormComplete() {
 }
 
 function updateSubmitState() {
-  if (state.submitting) {
+  if (state.submitting || state.jobActive) {
     els.submit.disabled = true;
     return;
   }
   els.submit.disabled = !isFormComplete();
 }
 
+function refreshSubmitLabel() {
+  if (state.submitting) {
+    els.submit.textContent = "Создаём…";
+  } else if (state.jobActive) {
+    els.submit.textContent = "Пак собирается…";
+  } else {
+    els.submit.textContent = "Создать пак";
+  }
+}
+
 function setSubmitting(flag) {
   state.submitting = flag;
-  els.submit.textContent = flag ? "Создаём…" : "Создать пак";
+  refreshSubmitLabel();
+  updateSubmitState();
+}
+
+function setJobActive(flag) {
+  state.jobActive = flag;
+  refreshSubmitLabel();
   updateSubmitState();
 }
 
@@ -476,6 +493,7 @@ async function handleSubmit(event) {
     const started = await startJob(created.public_id);
 
     state.currentJob = started;
+    setJobActive(true);
     renderResult(started);
     renderStatus(`Задача создана. Статус: ${statusLabel(started.status)}`, "info");
     startPolling(created.public_id);
@@ -504,6 +522,7 @@ function startPolling(publicId) {
 
       if (TERMINAL_STATUSES.includes(job.status)) {
         stopPolling();
+        setJobActive(false);
         if (job.status === "done") {
           renderStatus("Готово! Пак собран.", "success");
         } else if (job.status === "failed") {
@@ -516,6 +535,7 @@ function startPolling(publicId) {
       }
     } catch (err) {
       stopPolling();
+      setJobActive(false);
       renderStatus(err.message || "Ошибка обновления статуса.", "error");
     }
   }, POLL_INTERVAL_MS);

@@ -1,20 +1,37 @@
 from __future__ import annotations
 
+import os
 import json
 import math
 import shutil
 import subprocess
+
 from dataclasses import dataclass
 from pathlib import Path
 from app.db.repository import JobRecord
 from app.core.logging_config import setup_logging
+from concurrent.futures import ThreadPoolExecutor
 logger = setup_logging()
 MAX_DURATION_SECONDS = 3.0
 EMOJI_SIZE = 100
 
 VIDEO_MAX_FILE_SIZE_BYTES = 64 * 1024
-VIDEO_FPS_STEPS = [20, 15, 12, 10]
-VIDEO_CRF_STEPS = [44, 48, 52, 56, 60, 62]
+
+VP9_CPU_USED = int(os.getenv("VP9_CPU_USED", "4"))
+VP9_DEADLINE = os.getenv("VP9_DEADLINE", "good")  
+VP9_THREADS = int(os.getenv("VP9_THREADS", "2"))
+
+
+TILE_WORKERS = int(os.getenv("TILE_WORKERS", str(max(1, min(4, os.cpu_count() or 1)))))
+
+
+VIDEO_ENCODE_LADDER = [
+    (15, 50),
+    (15, 56),
+    (12, 58),
+    (12, 60),
+    (10, 63),
+]
 
 STATIC_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".gif"}
@@ -315,11 +332,13 @@ def encode_video_tile(
             "-crf",
             str(crf),
             "-deadline",
-            "best",
+            VP9_DEADLINE,
             "-cpu-used",
-            "0",
+            str(VP9_CPU_USED),
             "-row-mt",
             "1",
+            "-threads",
+            str(VP9_THREADS),
             "-frame-parallel",
             "0",
             "-auto-alt-ref",
@@ -343,36 +362,35 @@ def build_video_tile_with_limit(
 ) -> TileResult:
     out_path = tile_dir / f"{index:02d}_r{row+1}c{col+1}.webm"
     best_size = math.inf
-    best_fps = VIDEO_FPS_STEPS[-1]
-    best_crf = VIDEO_CRF_STEPS[-1]
+    best_fps = VIDEO_ENCODE_LADDER[-1][0]
+    best_crf = VIDEO_ENCODE_LADDER[-1][1]
 
-    for fps in VIDEO_FPS_STEPS:
-        for crf in VIDEO_CRF_STEPS:
-            size = encode_video_tile(
-                normalized_path=normalized_path,
-                out_path=out_path,
-                col=col,
+    for fps, crf in VIDEO_ENCODE_LADDER:
+        size = encode_video_tile(
+            normalized_path=normalized_path,
+            out_path=out_path,
+            col=col,
+            row=row,
+            fps=fps,
+            crf=crf,
+        )
+
+        if size < best_size:
+            best_size = size
+            best_fps = fps
+            best_crf = crf
+
+        if size <= VIDEO_MAX_FILE_SIZE_BYTES:
+            return TileResult(
+                index=index,
                 row=row,
+                col=col,
+                path=out_path,
+                size_bytes=size,
                 fps=fps,
                 crf=crf,
+                ok=True,
             )
-
-            if size < best_size:
-                best_size = size
-                best_fps = fps
-                best_crf = crf
-
-            if size <= VIDEO_MAX_FILE_SIZE_BYTES:
-                return TileResult(
-                    index=index,
-                    row=row,
-                    col=col,
-                    path=out_path,
-                    size_bytes=size,
-                    fps=fps,
-                    crf=crf,
-                    ok=True,
-                )
 
     return TileResult(
         index=index,
@@ -387,21 +405,43 @@ def build_video_tile_with_limit(
 
 
 def build_video_tiles(normalized_path: Path, tile_dir: Path, cols: int, rows: int) -> list[TileResult]:
-    results: list[TileResult] = []
+    tasks: list[tuple[int, int, int]] = []
     index = 1
-
     for row in range(rows):
         for col in range(cols):
-            tile_result = build_video_tile_with_limit(
-                normalized_path=normalized_path,
-                tile_dir=tile_dir,
-                index=index,
-                row=row,
-                col=col,
-            )
-            results.append(tile_result)
+            tasks.append((index, row, col))
             index += 1
 
+    results: list[TileResult] = []
+
+    if TILE_WORKERS <= 1 or len(tasks) <= 1:
+        for idx, row, col in tasks:
+            results.append(
+                build_video_tile_with_limit(
+                    normalized_path=normalized_path,
+                    tile_dir=tile_dir,
+                    index=idx,
+                    row=row,
+                    col=col,
+                )
+            )
+    else:
+        with ThreadPoolExecutor(max_workers=TILE_WORKERS) as pool:
+            futures = [
+                pool.submit(
+                    build_video_tile_with_limit,
+                    normalized_path=normalized_path,
+                    tile_dir=tile_dir,
+                    index=idx,
+                    row=row,
+                    col=col,
+                )
+                for idx, row, col in tasks
+            ]
+            for future in futures:
+                results.append(future.result())
+
+    results.sort(key=lambda r: r.index)
     return results
 
 
