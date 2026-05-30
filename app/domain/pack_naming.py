@@ -77,7 +77,8 @@ def build_short_name(title: str, bot_username: str) -> str:
     return short_name[:64].rstrip("_")
 
 def build_short_name_with_token(title: str, bot_username: str, token: str) -> str:
-
+    """Like build_short_name, but injects a uniqueness token before the
+    _by_<bot> suffix so the suffix always stays at the end."""
     base = normalize_short_name_base(title)
     suffix = f"_by_{bot_username.lower()}"
     token_part = f"_{token}" if token else ""
