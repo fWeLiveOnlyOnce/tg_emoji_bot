@@ -1,249 +1,89 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="
-      default-src 'self';
-      script-src 'self' https://telegram.org;
-      style-src 'self';
-      img-src 'self' data:;
-      connect-src 'self';
-      font-src 'self';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-      upgrade-insecure-requests;
-    "
-  >
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#0e1621">
-  <meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Emoji Pack Builder</title>
-
-  <link rel="stylesheet" href="/static/miniapp/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script defer src="/static/miniapp/app.js"></script>
+  <link rel="stylesheet" href="/static/miniapp/style.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand__mark" aria-hidden="true">✦</div>
-        <div class="brand__text">
-          <p class="eyebrow">Telegram Mini App</p>
-          <h1 class="title">Emoji Pack Builder</h1>
-        </div>
+  <main class="app">
+    <header class="app__header">
+      <div class="logo" aria-hidden="true">✦</div>
+      <div class="app__heading">
+        <p class="app__eyebrow">Telegram Mini App</p>
+        <h1 class="app__title">Emoji Pack Builder</h1>
       </div>
     </header>
 
-    <main id="app" class="app-main">
-      <section class="card hero-card" aria-labelledby="hero-title">
-        <p class="badge" id="launch-badge">Запуск Mini App</p>
-        <h2 id="hero-title">Создай новый pack внутри Telegram</h2>
-        <p class="lead">
-          Выбери параметры, а затем мы создадим задачу на обработку.
-        </p>
-      </section>
+    <section class="card account">
+      <span class="account__label">Аккаунт</span>
+      <span class="account__value" data-user>Инициализация…</span>
+    </section>
 
-      <section
-        class="card status-card"
-        aria-labelledby="session-title"
-        aria-live="polite"
-      >
-        <div class="section-head">
-          <h2 id="session-title">Сессия</h2>
-          <span id="app-status" class="status-chip status-chip--loading">
-            Инициализация…
-          </span>
-        </div>
-
-        <dl class="info-grid">
-          <div class="info-item">
-            <dt>Платформа</dt>
-            <dd id="platform-value">—</dd>
-          </div>
-          <div class="info-item">
-            <dt>Тема</dt>
-            <dd id="theme-value">—</dd>
-          </div>
-          <div class="info-item">
-            <dt>Пользователь</dt>
-            <dd id="user-value">—</dd>
-          </div>
-        </dl>
-
-        <p id="error-box" class="error-box" hidden></p>
-      </section>
-
-      <section class="card form-card" aria-labelledby="job-form-title">
-        <div class="section-head">
-          <h2 id="job-form-title">Новая задача</h2>
-          <p class="section-note">Первый MVP без загрузки файла.</p>
-        </div>
-
-        <form id="job-form" novalidate>
-          <div class="field">
-            <label for="title">Название pack</label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              maxlength="64"
-              autocomplete="off"
-              placeholder="Например, Murad Twitch Pack"
-              required
-            >
-          </div>
-
-          <fieldset class="field">
-            <legend>Ориентация</legend>
-            <div class="choice-row">
-              <label class="choice-pill">
-                <input type="radio" name="orientation" value="square" checked>
-                <span>Square</span>
-              </label>
-              <label class="choice-pill">
-                <input type="radio" name="orientation" value="portrait">
-                <span>Portrait</span>
-              </label>
-              <label class="choice-pill">
-                <input type="radio" name="orientation" value="landscape">
-                <span>Landscape</span>
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>Сетка</legend>
-            <div class="choice-row">
-              <label class="choice-pill">
-                <input type="radio" name="grid_code" value="2x2" checked>
-                <span>2x2</span>
-              </label>
-              <label class="choice-pill">
-                <input type="radio" name="grid_code" value="3x3">
-                <span>3x3</span>
-              </label>
-              <label class="choice-pill">
-                <input type="radio" name="grid_code" value="4x4">
-                <span>4x4</span>
-              </label>
-            </div>
-          </fieldset>
-
-          <div class="actions">
-            <button id="submit-button" class="button button--primary" type="submit">
-              Создать задачу
-            </button>
-          </div>
-        </form>
-      </section>
-      <div class="miniapp-panel">
-        <div data-user class="miniapp-user"></div>
-        <div data-status class="miniapp-status"></div>
-        <div data-job-result class="miniapp-result" hidden></div>
-      
-        <div class="miniapp-field">
-          <div class="miniapp-label">Файл</div>
-          <div
-            class="dropzone"
-            data-dropzone
-            tabindex="0"
-            role="button"
-            aria-label="Перетащите файл сюда или выберите вручную"
-          >
-            <input
-              id="pack-file"
-              type="file"
-              data-pack-file
-              accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov"
-              hidden
-            >
+    <form class="card form" data-form novalidate>
+      <div class="field">
+        <span class="field__label">Изображение или видео</span>
+        <div
+          class="dropzone"
+          data-dropzone
+          tabindex="0"
+          role="button"
+          aria-label="Перетащите файл сюда или выберите вручную"
+        >
+          <input
+            type="file"
+            data-file
+            accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,image/*,video/*"
+            hidden
+          />
+          <div class="dropzone__empty" data-dropzone-empty>
             <div class="dropzone__icon" aria-hidden="true">⬆</div>
             <p class="dropzone__title">Перетащите файл сюда</p>
             <p class="dropzone__hint">JPG, PNG, WEBP, GIF, MP4, WEBM, MOV · до 50 МБ</p>
-            <button type="button" class="dropzone__button" data-pick-file>Выбрать файл</button>
-            <p class="dropzone__filename" data-file-name hidden></p>
+            <span class="btn btn--ghost">Выбрать файл</span>
           </div>
-        </div>
-      
-        <div class="miniapp-field">
-          <label for="pack-title">Название пака</label>
-          <input
-            id="pack-title"
-            type="text"
-            data-pack-title
-            placeholder="Название пака"
-            maxlength="64"
-          >
-        </div>
-      
-        <div class="miniapp-field">
-          <div class="miniapp-label">Ориентация</div>
-          <div class="miniapp-row">
-            <button type="button" data-orientation="square">Square</button>
-            <button type="button" data-orientation="portrait">Portrait</button>
-            <button type="button" data-orientation="landscape">Landscape</button>
+          <div class="dropzone__preview" data-preview hidden>
+            <div class="preview__media" data-preview-media></div>
+            <div class="preview__info">
+              <p class="preview__name" data-file-name></p>
+              <button type="button" class="btn btn--ghost btn--sm" data-clear>Заменить файл</button>
+            </div>
           </div>
-        </div>
-      
-        <div class="miniapp-field">
-          <div class="miniapp-label">Сетка</div>
-          <div class="miniapp-row">
-            <button
-              type="button"
-              data-grid="2x2"
-              data-allowed-orientations="square,portrait,landscape"
-            >
-              2x2
-            </button>
-            <button
-              type="button"
-              data-grid="3x3"
-              data-allowed-orientations="square,portrait,landscape"
-            >
-              3x3
-            </button>
-            <button
-              type="button"
-              data-grid="4x4"
-              data-allowed-orientations="square,portrait,landscape"
-            >
-              4x4
-            </button>
-          </div>
-        </div>
-      
-        <div class="miniapp-field">
-          <button type="button" data-create-pack>Создать</button>
         </div>
       </div>
-      <section
-        class="card result-card"
-        aria-labelledby="result-title"
-        id="result-section"
-        hidden
-      >
-        <div class="section-head">
-          <h2 id="result-title">Результат</h2>
-        </div>
 
-        <dl class="info-grid">
-          <div class="info-item">
-            <dt>ID задачи</dt>
-            <dd id="job-id-value">—</dd>
-          </div>
-          <div class="info-item">
-            <dt>Статус</dt>
-            <dd id="job-status-value">—</dd>
-          </div>
-        </dl>
-      </section>
-    </main>
-  </div>
+      <div class="field">
+        <label class="field__label" for="pack-title">Название пака</label>
+        <input
+          id="pack-title"
+          class="input"
+          type="text"
+          data-title
+          maxlength="64"
+          placeholder="Например, My Cats"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="field">
+        <span class="field__label">Ориентация</span>
+        <div class="pills" data-orientation-group></div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">Сетка</span>
+        <div class="pills" data-grid-group></div>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" data-submit>Создать пак</button>
+    </form>
+
+    <section class="card status" data-status hidden></section>
+    <section class="card result" data-result hidden></section>
+  </main>
+
+  <script src="/static/miniapp/app.js"></script>
 </body>
 </html>

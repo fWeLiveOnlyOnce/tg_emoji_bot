@@ -16,15 +16,6 @@ VIDEO_MAX_FILE_SIZE_BYTES = 64 * 1024
 VIDEO_FPS_STEPS = [20, 15, 12, 10]
 VIDEO_CRF_STEPS = [44, 48, 52, 56, 60, 62]
 
-GRID_MAP: dict[str, tuple[int, int]] = {
-    "3x3": (3, 3),
-    "4x4": (4, 4),
-    "5x5": (5, 5),
-    "6x6": (6, 6),
-    "7x7": (7, 7),
-    "8x8": (8, 8),
-}
-
 STATIC_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".gif"}
 
@@ -104,11 +95,32 @@ def probe_duration_seconds(source_path: Path) -> float:
     return float(raw_duration)
 
 
+def parse_grid_code(grid_code: str) -> tuple[int, int] | None:
+
+    if not grid_code or not isinstance(grid_code, str):
+        return None
+
+    parts = grid_code.lower().split("x")
+    if len(parts) != 2:
+        return None
+
+    try:
+        cols = int(parts[0])
+        rows = int(parts[1])
+    except ValueError:
+        return None
+
+    if not (1 <= cols <= 10 and 1 <= rows <= 10):
+        return None
+
+    return cols, rows
+
+
 def get_grid_size(grid_code: str) -> tuple[int, int]:
-    grid = GRID_MAP.get(grid_code)
-    if not grid:
+    parsed = parse_grid_code(grid_code)
+    if parsed is None:
         raise RuntimeError(f"Unsupported grid_code: {grid_code}")
-    return grid
+    return parsed
 
 
 def ensure_job_output_dir(base_output_dir: Path, public_id: str) -> Path:
