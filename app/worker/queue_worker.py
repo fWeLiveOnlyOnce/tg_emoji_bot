@@ -12,9 +12,14 @@ from app.db.repository import (
     claim_next_queued_job,
     mark_job_done,
     mark_job_failed,
+    get_active_public_ids,
 )
 from app.services.converter import convert_job_to_tiles, ConversionError
-from app.services.storage import remove_job_input_dir
+from app.services.storage import (
+    remove_job_input_dir,
+    remove_job_output_dir,          
+    sweep_orphan_job_dirs,          
+)
 from app.services.telegram_publisher import (
     create_custom_emoji_pack,
     add_tiles_to_existing_pack,
@@ -29,17 +34,6 @@ def worker_id() -> str:
     return f"{socket.gethostname()}:{os.getpid()}"
 
 
-def remove_job_output_dir(base_output_dir: Path, public_id: str) -> None:
-    job_dir = (base_output_dir / public_id).resolve()
-
-    if not job_dir.exists():
-        return
-
-    expected_root = base_output_dir.resolve()
-    if job_dir.parent != expected_root:
-        raise RuntimeError("Unsafe output cleanup path detected.")
-
-    shutil.rmtree(job_dir)
 
 
 def cleanup_job_dirs(settings, public_id: str) -> None:
@@ -77,6 +71,12 @@ async def process_job(job) -> str:
 async def main() -> None:
     settings = load_settings()
     ensure_runtime_dirs(settings)
+    # Стартовая уборка: сносим осиротевшие каталоги неактивных задач
+    keep = get_active_public_ids()
+    swept_in = sweep_orphan_job_dirs(settings.input_dir, keep)
+    swept_out = sweep_orphan_job_dirs(settings.output_dir, keep)
+    if swept_in or swept_out:
+        logger.info(f"Startup sweep: removed input={swept_in} output={swept_out} orphan dirs")
 
     current_worker = worker_id()
     logger.info(f"Queue worker started: {current_worker}")

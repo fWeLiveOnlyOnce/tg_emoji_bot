@@ -35,6 +35,7 @@ class JobRecord:
     trim_start: float = 0.0
     trim_duration: Optional[float] = None
 
+_ACTIVE_JOB_STATUSES = ("draft", "queued", "processing", "ready")
 
 @lru_cache(maxsize=1)
 def _database_path() -> str:
@@ -46,6 +47,17 @@ def _get_connection() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     return conn
 
+
+
+def get_active_public_ids() -> set[str]:
+    """public_id задач, чьи файлы ещё нужны (не терминальные статусы)."""
+    placeholders = ",".join("?" for _ in _ACTIVE_JOB_STATUSES)
+    with closing(_get_connection()) as conn:
+        cursor = conn.execute(
+            f"SELECT public_id FROM jobs WHERE status IN ({placeholders})",
+            _ACTIVE_JOB_STATUSES,
+        )
+        return {row[0] for row in cursor.fetchall()}
 
 def _row_to_job(row: sqlite3.Row) -> JobRecord:
     return JobRecord(

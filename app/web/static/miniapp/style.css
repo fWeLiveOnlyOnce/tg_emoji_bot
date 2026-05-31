@@ -963,11 +963,78 @@ input {
 }
 
 /* ============================================================
-   🥃 LIQUID GLASS v3 — патч по фидбеку
-   (в САМЫЙ КОНЕЦ style.css, после блока v2)
+   🥃 LIQUID GLASS — ФИНАЛ (самодостаточный)
+   Заменяет ВЕСЬ предыдущий блок «🥃 LIQUID GLASS v3»
+   (от того комментария и до конца файла). Ни от чего не зависит.
    ============================================================ */
 
-/* --- 1. Мгновенная смена темы (убираем «съезжающий» fade) --- */
+/* --- 0. Токены: премиальная моно-палитра + стекло --- */
+:root {
+  --bg: #eef0f3;            /* светлая «платина» */
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --border: #e3e5ea;
+  --border-strong: #d4d7dd;
+  --text: #0f1115;
+  --muted: #6b7280;
+
+  --accent: #1c1c1e;        /* графит — премиальный «чёрный» */
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(28, 28, 30, 0.08);
+  --accent-glow: rgba(28, 28, 30, 0.14);
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.85);
+  --glass-hi: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 8px 30px rgba(15, 17, 21, 0.12);
+  --glass-blur: 20px;
+  --glass-saturate: 165%;
+
+  --radius: 16px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0a0c;
+  --surface: #161618;
+  --surface-2: #1f1f22;
+  --border: #2a2a2e;
+  --border-strong: #34343a;
+  --text: #f5f5f7;
+  --muted: #9a9aa2;
+
+  --accent: #f5f5f7;        /* премиальный «белый» */
+  --accent-contrast: #0a0a0c;
+  --accent-soft: rgba(245, 245, 247, 0.10);
+  --accent-glow: rgba(245, 245, 247, 0.16);
+
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-hi: rgba(255, 255, 255, 0.22);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* системная тёмная без явной темы — глушим старый синий accent #3a9bee */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0c;
+    --surface: #161618;
+    --surface-2: #1f1f22;
+    --border: #2a2a2e;
+    --border-strong: #34343a;
+    --text: #f5f5f7;
+    --muted: #9a9aa2;
+    --accent: #f5f5f7;
+    --accent-contrast: #0a0a0c;
+    --accent-soft: rgba(245, 245, 247, 0.10);
+    --accent-glow: rgba(245, 245, 247, 0.16);
+    --glass-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-hi: rgba(255, 255, 255, 0.22);
+    --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* --- 1. Мгновенная смена темы (без «съезжающего» fade) --- */
 :root.theme-switching,
 :root.theme-switching *,
 :root.theme-switching *::before,
@@ -976,78 +1043,189 @@ input {
   animation: none !important;
 }
 
-/* --- 2. ЖИВОЙ ФОН: медленно дышащая «аврора» (Вариант A) --- */
+/* --- 2. ЖИВОЙ ФОН: дышащая «аврора» на любой теме --- */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg);
+  overflow: hidden;
+}
 .bg-layer::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
   background:
-    radial-gradient(42% 34% at 20% 6%,   var(--accent-glow) 0%, transparent 70%),
-    radial-gradient(40% 30% at 84% 4%,   color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 72%),
-    radial-gradient(60% 44% at 50% 112%, var(--accent-glow) 0%, transparent 70%);
+    radial-gradient(42% 38% at 18% 22%, var(--accent-glow), transparent 60%),
+    radial-gradient(38% 34% at 82% 16%, rgba(120, 150, 255, 0.16), transparent 62%),
+    radial-gradient(46% 40% at 70% 86%, rgba(255, 140, 190, 0.14), transparent 64%);
+  filter: blur(12px);
   animation: bgDrift 28s ease-in-out infinite alternate;
-  will-change: transform;
 }
 @keyframes bgDrift {
-  0%   { transform: translate3d(0, 0, 0) scale(1.02); }
-  50%  { transform: translate3d(0, -2.5%, 0) scale(1.08); }
-  100% { transform: translate3d(0, 1.5%, 0) scale(1.05); }
+  0%   { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  50%  { transform: translate3d(3%, 2%, 0) scale(1.12); }
+  100% { transform: translate3d(-2%, 3%, 0) scale(1.06); }
 }
 
-/* --- 3. СТЕКЛЯННЫЕ КНОПКИ (iOS 26 liquid glass) --- */
+/* карточки чуть прозрачные — фон «дышит» сквозь них */
+.card {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate));
+}
+
+/* --- 3. Стеклянные кнопки (Apple Liquid Glass) --- */
 .btn--primary {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0) 56%),
-    color-mix(in srgb, var(--accent) 85%, transparent);
   color: var(--accent-contrast);
-  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--glass-border));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  background:
+    linear-gradient(180deg, var(--glass-hi), transparent 55%),
+    var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--glass-border));
   box-shadow:
-    0 8px 24px color-mix(in srgb, var(--accent) 26%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
-  transition:
-    filter var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-spring),
-    box-shadow var(--motion) var(--ease-out);
+    0 1px 0 var(--glass-hi) inset,
+    0 8px 22px var(--accent-glow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
 }
-.btn--primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
-.btn--primary:active:not(:disabled) { transform: scale(0.97); }
-.btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--primary::after {        /* верхний стеклянный блик */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 48%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+.btn--primary:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
 
-/* --- 4. ИСТОРИЯ: мягкое наведение на ВЕСЬ блок --- */
-.history__item {
-  transition:
-    transform var(--motion) var(--ease-out),
-    box-shadow var(--motion) var(--ease-out),
-    border-color var(--motion) var(--ease-out),
-    background-color var(--motion) var(--ease-out);
+/* «ghost» и pills — лёгкое матовое стекло */
+.btn--ghost,
+.pill {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
 }
-.history__head:hover { background: transparent; }
-@media (hover: hover) and (pointer: fine) {
+.pill.is-active {
+  color: var(--accent-contrast);
+  background:
+    linear-gradient(180deg, var(--glass-hi), transparent 55%),
+    var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--glass-border));
+}
+
+/* --- 4. ИКОНКИ: явный размер SVG (иначе схлопываются/пропадают) --- */
+.tabbar__icon svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.dropzone__icon svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+
+/* таб-бар — плавающая стеклянная «капсула» */
+.tabbar {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 24px));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* --- 5. ИСТОРИЯ: возвращаем плавное схлопывание --- */
+.history__details {
+  margin: 0;
+  display: grid;
+  grid-template-rows: 0fr;            /* свёрнуто */
+  opacity: 0;
+  transition:
+    grid-template-rows var(--motion) var(--ease-out),
+    opacity var(--motion) var(--ease-out),
+    margin-top var(--motion) var(--ease-out);
+}
+.history__details-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+}
+.history__item.is-open .history__details {
+  grid-template-rows: 1fr;            /* раскрыто */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+/* мягкое наведение/нажатие на ВЕСЬ блок, а не на одну кнопку */
+.history__item {
+  cursor: pointer;
+  transition:
+    background-color var(--motion) var(--ease-out),
+    border-color var(--motion) var(--ease-out),
+    box-shadow var(--motion) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+.history__head { cursor: pointer; }
+.history__head:hover { background: none; }   /* убираем «дешёвое» затемнение */
+@media (hover: hover) {
   .history__item:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--accent) 20%, var(--glass-border));
-    background: color-mix(in srgb, var(--glass-bg) 90%, var(--accent) 5%);
-    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), 0 16px 36px rgba(17, 24, 39, 0.14);
+    background: color-mix(in srgb, var(--surface) 80%, var(--accent) 6%);
+    border-color: color-mix(in srgb, var(--border) 60%, var(--accent) 18%);
   }
 }
 .history__item.is-open {
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--glass-border));
-  background: color-mix(in srgb, var(--glass-bg) 86%, var(--accent) 6%);
+  border-color: color-mix(in srgb, var(--border) 50%, var(--accent) 22%);
+  box-shadow: 0 10px 26px var(--accent-glow);
 }
+.history__item:active { transform: scale(0.992); }
 
-/* --- 5. МОБИЛЬНЫЙ ЗАГРУЗЧИК: просто кнопка, без drop-зоны --- */
+/* --- 6. МОБИЛЬНЫЙ ДРОПЗОН: только кнопка, без «поля перетаскивания» --- */
 body.is-touch .dropzone:not(.has-file) {
   border: none;
-  background: transparent;
-  box-shadow: none;
+  background: none;
   padding: 0;
+  cursor: default;
 }
-body.is-touch .dropzone:not(.has-file) .dropzone__empty { padding: 0; gap: 10px; }
-body.is-touch .dropzone__icon { display: none; }
-body.is-touch .dropzone__cta { width: 100%; min-height: 52px; order: 1; }
-body.is-touch .dropzone__hint { order: 2; }
+body.is-touch .dropzone:not(.has-file) .dropzone__empty {
+  padding: 4px 0;
+  gap: 12px;
+}
+body.is-touch [data-dz-desktop-only] { display: none; }   /* «Перетащите файл сюда» */
+body.is-touch .dropzone__cta {
+  width: 100%;
+  min-height: 50px;
+}
 
-/* --- 6. Блокировка формы во время сборки --- */
-.dropzone.is-locked { pointer-events: none; opacity: 0.55; }
-.pill:disabled { opacity: 0.5; cursor: not-allowed; }
+/* --- 7. БЛОКИРОВКА ФОРМЫ во время сборки (setFormLocked) --- */
+.dropzone.is-locked {
+  pointer-events: none;
+  opacity: 0.55;
+  filter: saturate(0.8);
+}
+.pill:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

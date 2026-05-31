@@ -28,7 +28,7 @@ from app.domain.pack_options import (
     is_allowed_grid,
     is_allowed_orientation,
 )
-from app.services.storage import build_job_input_path
+from app.services.storage import build_job_input_path, remove_job_dirs
 from app.web.api.auth import (
     MiniAppAuthError,
     build_user_display_name,
@@ -555,6 +555,10 @@ async def delete_miniapp_job(
 
     deleted = delete_job_for_user(public_id, verified.user.id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="Задача не найдена.")
+
+    # подчищаем файлы задачи (воркер мог не успеть, либо задача не обрабатывалась)
+    settings = load_settings()
+    remove_job_dirs(settings.input_dir, settings.output_dir, public_id)
 
     return {"ok": True, "public_id": public_id}
