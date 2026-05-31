@@ -1,9 +1,12 @@
 from pathlib import Path
+import logging
 import os
 import asyncio
 
 from dotenv import load_dotenv
 from telethon import TelegramClient
+
+logger = logging.getLogger(__name__)
 
 
 def require_env(name: str) -> str:
@@ -25,15 +28,15 @@ async def main():
     session_file.parent.mkdir(parents=True, exist_ok=True)
 
     print("[WAIT] Запускаю авторизацию Telethon...", flush=True)
-    print(f"[INFO] Session path: {session_file}", flush=True)
+    logger.debug("Session path: %s", session_file)
 
     client = TelegramClient(session_path, api_id, api_hash)
     await client.start(phone=phone_number)
 
     me = await client.get_me()
     print("[OK] Авторизация Telethon прошла успешно.", flush=True)
-    print(f"[INFO] Пользователь: {me.first_name} (@{me.username}) id={me.id}", flush=True)
-    print(f"[INFO] Session сохранена: {session_file}", flush=True)
+    logger.debug("Authorized user id=%s (@%s)", me.id, me.username)
+    logger.debug("Session stored at: %s", session_file)
 
     await client.disconnect()
 

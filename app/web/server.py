@@ -85,46 +85,7 @@ class MiniAppAuthRequest(BaseModel):
     init_data: str = Field(min_length=1, max_length=8192)
 
 
-class CreateJobRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    title: str = Field(min_length=1, max_length=64)
-    orientation: str = Field(min_length=1, max_length=32)
-    grid_code: str = Field(min_length=1, max_length=32)
-    add_to_short_name: str | None = Field(default=None, max_length=64)
-
-    @field_validator("add_to_short_name")
-    @classmethod
-    def validate_add_to_short_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        cleaned = value.strip()
-        return cleaned or None
-
-    @field_validator("title")
-    @classmethod
-    def validate_title(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("title must not be empty")
-        return cleaned
-
-    @field_validator("orientation")
-    @classmethod
-    def validate_orientation(cls, value: str) -> str:
-        cleaned = value.strip().lower()
-        if not is_allowed_orientation(cleaned):
-            raise ValueError("unsupported orientation")
-        return cleaned
-
-    @field_validator("grid_code")
-    @classmethod
-    def validate_grid_code(cls, value: str) -> str:
-        cleaned = value.strip().lower()
-        return cleaned
-
-
-class UpdateJobRequest(BaseModel):
+class JobSelectionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str = Field(min_length=1, max_length=64)
@@ -151,6 +112,22 @@ class UpdateJobRequest(BaseModel):
     @classmethod
     def validate_grid_code(cls, value: str) -> str:
         return value.strip().lower()
+
+
+class UpdateJobRequest(JobSelectionRequest):
+    pass
+
+
+class CreateJobRequest(JobSelectionRequest):
+    add_to_short_name: str | None = Field(default=None, max_length=64)
+
+    @field_validator("add_to_short_name")
+    @classmethod
+    def validate_add_to_short_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
 
 @asynccontextmanager
@@ -447,6 +424,7 @@ async def upload_job_source(
 
     set_job_source(
         public_id=public_id,
+        user_id=verified.user.id, 
         source_type=source_type,
         source_file_id=None,
         source_file_path=str(destination),

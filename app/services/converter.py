@@ -104,12 +104,76 @@ def probe_media_info(source_path: Path) -> dict:
     return json.loads(result.stdout)
 
 
+def _parse_timecode_to_seconds(value: str) -> float | None:
+    # "00:00:02.500000000" -> 2.5
+    try:
+        parts = value.split(":")
+        if len(parts) == 3:
+            h, m, s = parts
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _duration_from_info(info: dict) -> float | None:
+    # 1) длительность контейнера
+    raw = info.get("format", {}).get("duration")
+    if raw not in (None, "N/A"):
+        try:
+            return float(raw)
+        except (ValueError, TypeError):
+            pass
+
+    video_streams = [
+        s for s in info.get("streams", []) if s.get("codec_type") == "video"
+    ]
+
+    # 2) длительность на уровне видеопотока
+    for s in video_streams:
+        raw = s.get("duration")
+        if raw not in (None, "N/A"):
+            try:
+                return float(raw)
+            except (ValueError, TypeError):
+                pass
+
+    # 3) теги потока DURATION (mkv/webm)
+    for s in video_streams:
+        for key, val in (s.get("tags") or {}).items():
+            if key.lower() == "duration":
+                parsed = _parse_timecode_to_seconds(val)
+                if parsed:
+                    return parsed
+
+    # 4) расчёт по числу кадров и частоте
+    for s in video_streams:
+        nb_frames = s.get("nb_frames")
+        rate = s.get("avg_frame_rate") or s.get("r_frame_rate")
+        if nb_frames not in (None, "N/A") and rate not in (None, "N/A", "0/0"):
+            try:
+                num, den = rate.split("/")
+                fps = float(num) / float(den) if float(den) else 0.0
+                if fps > 0:
+                    return int(nb_frames) / fps
+            except (ValueError, TypeError, ZeroDivisionError):
+                pass
+
+    return None
+
+
 def probe_duration_seconds(source_path: Path) -> float:
     info = probe_media_info(source_path)
-    raw_duration = info.get("format", {}).get("duration")
-    if raw_duration is None:
-        raise RuntimeError("Could not detect source duration")
-    return float(raw_duration)
+    duration = _duration_from_info(info)
+    if duration is None or duration <= 0:
+        # Исходник зацикливается (-stream_loop -1), так что разумный
+        # дефолт всё равно даёт корректный пак.
+        logger.warning(
+            "Не удалось определить длительность; фолбэк на %.1fs",
+            MAX_DURATION_SECONDS,
+        )
+        return MAX_DURATION_SECONDS
+    return duration
 
 
 def parse_grid_code(grid_code: str) -> tuple[int, int] | None:

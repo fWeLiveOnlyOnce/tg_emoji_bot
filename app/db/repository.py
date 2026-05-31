@@ -5,7 +5,7 @@ import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
 from typing import Optional
-
+from functools import lru_cache
 from app.core.config import load_settings
 
 
@@ -36,9 +36,13 @@ class JobRecord:
     trim_duration: Optional[float] = None
 
 
+@lru_cache(maxsize=1)
+def _database_path() -> str:
+    return load_settings().database_path
+
+
 def _get_connection() -> sqlite3.Connection:
-    settings = load_settings()
-    conn = sqlite3.connect(settings.database_path, timeout=30)
+    conn = sqlite3.connect(_database_path(), timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -200,6 +204,7 @@ def count_inflight_jobs_for_user(user_id: int) -> int:
 def set_job_source(
     *,
     public_id: str,
+    user_id: int,
     source_type: str,
     source_file_id: Optional[str],
     source_file_path: Optional[str],
@@ -215,6 +220,7 @@ def set_job_source(
                 original_filename = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE public_id = ?
+              AND user_id = ?
             """,
             (
                 source_type,
@@ -222,6 +228,7 @@ def set_job_source(
                 source_file_path,
                 original_filename,
                 public_id,
+                user_id,
             ),
         )
 
