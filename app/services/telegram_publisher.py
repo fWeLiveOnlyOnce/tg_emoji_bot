@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from telethon import TelegramClient, functions, types
-from telethon.errors import RPCError
+from telethon.errors import FloodWaitError, ShortnameOccupyFailedError
 from telethon.tl.types import DocumentAttributeFilename
 
 from app.core.config import load_settings
@@ -21,6 +22,32 @@ logger = setup_logging()
 DEFAULT_EMOJI_ALT = "😎"
 DEFAULT_SOFTWARE_TAG = "telegram_emoji_bot"
 MAX_SHORT_NAME_ATTEMPTS = 5
+
+# Обработка FloodWait: дольше минуты не ждём, чтобы не вешать воркер.
+FLOOD_WAIT_MAX_SECONDS = 60
+FLOOD_WAIT_MAX_RETRIES = 3
+
+
+async def _invoke(client: TelegramClient, request):
+    """Вызывает RPC-запрос Telethon с обработкой FloodWaitError.
+
+    При FloodWait ждём e.seconds (+1) и повторяем. Если Telegram требует ждать
+    дольше FLOOD_WAIT_MAX_SECONDS — пробрасываем ошибку, чтобы задача упала, а
+    не висела минутами."""
+    for attempt in range(FLOOD_WAIT_MAX_RETRIES):
+        try:
+            return await client(request)
+        except FloodWaitError as e:
+            too_long = e.seconds > FLOOD_WAIT_MAX_SECONDS
+            last_attempt = attempt == FLOOD_WAIT_MAX_RETRIES - 1
+            if too_long or last_attempt:
+                raise
+            logger.warning(
+                f"FloodWait {e.seconds}s на {type(request).__name__}; "
+                f"жду и повторяю (попытка {attempt + 1})"
+            )
+            await asyncio.sleep(e.seconds + 1)
+    raise RuntimeError("FloodWait retry loop exhausted")
 
 
 async def _build_client() -> TelegramClient:
@@ -69,11 +96,12 @@ async def _upload_tile_as_document(
     else:
         raise RuntimeError(f"Unsupported tile extension: {suffix}")
 
-    uploaded = await client(
+    uploaded = await _invoke(
+        client,
         functions.messages.UploadMediaRequest(
             peer="me",
             media=media,
-        )
+        ),
     )
 
     document = getattr(uploaded, "document", None)
@@ -104,7 +132,8 @@ async def add_tiles_to_existing_pack(
 
         for tile in sorted(conversion.successful_tiles, key=lambda x: x.index):
             input_document = await _upload_tile_as_document(client, tile.path)
-            await client(
+            await _invoke(
+                client,
                 functions.stickers.AddStickerToSetRequest(
                     stickerset=stickerset,
                     sticker=types.InputStickerSetItem(
@@ -112,7 +141,7 @@ async def add_tiles_to_existing_pack(
                         emoji=DEFAULT_EMOJI_ALT,
                         keywords="",
                     ),
-                )
+                ),
             )
             logger.info(f"Added tile {tile.path.name} to set {job.target_short_name}")
 
@@ -161,7 +190,8 @@ async def create_custom_emoji_pack(
 
         for attempt in range(MAX_SHORT_NAME_ATTEMPTS):
             try:
-                await client(
+                await _invoke(
+                    client,
                     functions.stickers.CreateStickerSetRequest(
                         user_id=me,
                         title=job.title,
@@ -169,16 +199,14 @@ async def create_custom_emoji_pack(
                         stickers=sticker_items,
                         emojis=True,
                         software=DEFAULT_SOFTWARE_TAG,
-                    )
+                    ),
                 )
                 # Имя поменялось из-за коллизии — сохраняем актуальное в БД.
                 if short_name != job.short_name:
                     set_job_title_and_short_name(job.public_id, job.title, short_name)
                     job.short_name = short_name
                 return "https://t.me/addemoji/" + short_name
-            except RPCError as e:
-                if "OCCUPIED" not in str(e).upper():
-                    raise
+            except ShortnameOccupyFailedError as e:
                 last_error = e
                 short_name = build_unique_short_name(
                     job.title, settings.bot_username, exists=short_name_exists

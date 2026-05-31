@@ -76,22 +76,6 @@ def build_short_name(title: str, bot_username: str) -> str:
     short_name = re.sub(r"_+", "_", short_name)
     return short_name[:64].rstrip("_")
 
-def build_short_name_with_token(title: str, bot_username: str, token: str) -> str:
-    """Like build_short_name, but injects a uniqueness token before the
-    _by_<bot> suffix so the suffix always stays at the end."""
-    base = normalize_short_name_base(title)
-    suffix = f"_by_{bot_username.lower()}"
-    token_part = f"_{token}" if token else ""
-    max_base_len = 64 - len(suffix) - len(token_part)
-    if max_base_len < 1:
-        max_base_len = 1
-    base = base[:max_base_len].strip("_")
-    if not base:
-        base = "e"
-    short_name = f"{base}{token_part}{suffix}"
-    short_name = re.sub(r"_+", "_", short_name)
-    return short_name[:64].rstrip("_")
-
 def _short_name_with_token(title: str, bot_username: str, token: str) -> str:
     """Базовое имя + несколько символов перед _by_ суффиксом.
     Используется ТОЛЬКО при коллизии short_name в БД."""

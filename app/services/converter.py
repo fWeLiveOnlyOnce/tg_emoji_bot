@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 logger = setup_logging()
 MAX_DURATION_SECONDS = 3.0
 EMOJI_SIZE = 100
-
+FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "120"))
 VIDEO_MAX_FILE_SIZE_BYTES = 64 * 1024
 
 VP9_CPU_USED = int(os.getenv("VP9_CPU_USED", "4"))
@@ -79,7 +79,20 @@ def ensure_ffmpeg_available() -> None:
 
 
 def _run(cmd: list[str], title: str) -> subprocess.CompletedProcess:
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=FFMPEG_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error("ffmpeg step timed out after %ss: %s", FFMPEG_TIMEOUT_SECONDS, title)
+        raise ConversionError(
+            "Обработка заняла слишком много времени и была прервана. "
+            "Попробуйте файл покороче или меньшую сетку."
+        )
     if result.returncode != 0:
         stderr = result.stderr.strip() or "Command failed"
         logger.error("ffmpeg step failed: %s | %s", title, stderr)
