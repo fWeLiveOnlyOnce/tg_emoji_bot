@@ -759,7 +759,7 @@ function renderHistory(items) {
               <span class="history__chevron" aria-hidden="true">▾</span>
             </span>
           </button>
-          <div class="history__details" hidden>
+          <div class="history__details">
             <div class="history__detail-list">${detailRows}</div>
             <div class="history__actions">
               ${openCopyAdd}
@@ -784,12 +784,10 @@ function bindHistoryActions() {
     const toggle = event.target.closest("[data-toggle]");
     if (toggle) {
       const item = toggle.closest(".history__item");
-      const details = item?.querySelector(".history__details");
-      if (details) {
-        const willOpen = details.hidden;
-        details.hidden = !willOpen;
-        toggle.setAttribute("aria-expanded", String(willOpen));
+      if (item) {
+        const willOpen = !item.classList.contains("is-open");
         item.classList.toggle("is-open", willOpen);
+        toggle.setAttribute("aria-expanded", String(willOpen));
         haptic("light");
       }
       return;

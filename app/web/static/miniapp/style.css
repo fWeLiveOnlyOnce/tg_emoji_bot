@@ -8,7 +8,7 @@
   --border-strong: #d1d5db;
   --text: #15181d;
   --muted: #6b7280;
-  --accent: #2481cc;
+  --accent: #1c1c1e;
   --accent-contrast: #ffffff;
   --accent-soft: rgba(36, 129, 204, 0.12);
   --success: #2e9e5b;
@@ -31,7 +31,7 @@
   --border-strong: #48484a;
   --text: #f2f2f7;
   --muted: #9a9aa2;
-  --accent: #3a9bee;
+  --accent: #1c1c1e;
   --accent-contrast: #ffffff;
   --accent-soft: rgba(58, 155, 238, 0.18);
   --success: #34c170;
@@ -960,4 +960,220 @@ input {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* ============================================================
+   🥃 LIQUID GLASS — премиальный моно-редизайн (append в конец)
+   всё на переменных → переопределяет предыдущие через каскад
+   ============================================================ */
+
+/* --- ПАЛИТРА: премиальный монохром (светлая база) --- */
+:root {
+  /* Светлая тема — тёплый белый */
+  --bg: #f5f5f3;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-2: rgba(255, 255, 255, 0.55);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --text: #111114;
+  --muted: #6b6b73;
+  --accent-contrast: #ffffff;
+
+  /* Акцент под лого-глаз — МЕНЯЙ ЗДЕСЬ */
+  --accent: #1c1c1e;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-glow: color-mix(in srgb, var(--accent) 22%, transparent);
+
+  /* Стекло (умеренное, Apple-стиль) */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-hi: rgba(255, 255, 255, 0.9);     /* верхний блик = vibrancy */
+  --glass-blur: 18px;
+  --glass-saturate: 160%;
+  --glass-shadow: 0 8px 30px rgba(16, 24, 40, 0.10);
+
+  --radius: 16px;
+}
+
+/* --- Палитра: тёмная база (глубокий чёрный) --- */
+:root[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-2: rgba(255, 255, 255, 0.045);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f4f4f7;
+  --muted: rgba(235, 235, 245, 0.6);
+
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-hi: rgba(255, 255, 255, 0.28);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+}
+
+/* Фоллбэк по системной теме, если Telegram не выставил data-theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0b;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-2: rgba(255, 255, 255, 0.045);
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text: #f4f4f7;
+    --muted: rgba(235, 235, 245, 0.6);
+    --glass-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-hi: rgba(255, 255, 255, 0.28);
+    --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* --- ФОН: моно + один акцентный glow + зерно --- */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg);
+  pointer-events: none;
+}
+.bg-layer::before {                /* единственный glow под лого */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 42% at 50% 0%,
+    var(--accent-glow) 0%, transparent 72%);
+}
+.bg-layer::after {                 /* лёгкая зернистость — «дорогая» фактура */
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --- Общий «стеклянный» миксин (берём блик и тень) --- */
+.card,
+.history__item,
+.btn--ghost,
+.pill,
+.toast {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+}
+
+.card,
+.history__item {
+  border-radius: var(--radius);
+}
+
+/* --- КНОПКИ --- */
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);  /* блик сверху */
+}
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.btn--ghost:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--glass-border));
+  color: var(--accent);
+}
+
+/* --- PILLS --- */
+.pill.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tabbar {
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: auto;
+  padding: 6px;
+  gap: 4px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+.tabbar__btn {
+  border-radius: 16px;
+  padding: 8px 4px;
+}
+.tabbar__btn.is-active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+}
+.tabbar__btn:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+
+.history__details {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+  transition: grid-template-rows var(--motion) var(--ease-out),
+              opacity var(--motion) var(--ease-out),
+              margin-top var(--motion) var(--ease-out);
+}
+.history__details > * {
+  min-height: 0;
+}
+.history__item.is-open .history__details {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+
+.badge {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+
+.logo,
+.account__avatar {
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+}
+
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.96);
+  }
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    --glass-bg: rgba(22, 22, 24, 0.96);
+  }
+  .card,
+  .history__item,
+  .btn--ghost,
+  .pill,
+  .toast,
+  .tabbar {
+    background: var(--glass-bg);
+  }
+}
+
+.input {
+  background: color-mix(in srgb, var(--surface-2) 100%, transparent);
 }
