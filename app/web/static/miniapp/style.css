@@ -1041,9 +1041,6 @@ input {
   pointer-events: none;
   background: var(--bg);
   overflow: hidden;
-  transform: translate3d(calc(var(--mx, 0) * 1px), calc(var(--my, 0) * 1px), 0);
-  transition: transform 0.45s var(--ease-out);
-  will-change: transform;
 }
 .bg-layer::before {
   content: "";
@@ -1297,3 +1294,91 @@ body.is-touch .dropzone__cta {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border-color: color-mix(in srgb, var(--danger) 35%, var(--glass-border));
 }
+
+/* ============================================================
+   🌤️ СВЕТЛАЯ ТЕМА — премиальная переборка (только light)
+   ============================================================ */
+   :root[data-theme="light"] {
+    --bg: #eaecf1;                 /* прохладная платина, не чисто белая */
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --border: #dfe2e8;
+    --border-strong: #ccd0d8;
+    --text: #0f1115;
+    --muted: #5f6672;
+  
+    /* аврора: один мягкий прохладный акцент (mono + single spot) */
+    --bg-tint-1: rgba(28, 30, 46, 0.06);
+    --bg-tint-2: rgba(120, 140, 180, 0.05);
+    --bg-tint-3: transparent;
+  
+    /* стекло на свету: плотное, матовое, с СЕРОЙ волосяной границей */
+    --glass-bg: rgba(255, 255, 255, 0.74);
+    --glass-border: rgba(15, 17, 21, 0.10);
+    --glass-hi: rgba(255, 255, 255, 0.85);
+    --glass-shadow: 0 10px 30px rgba(15, 17, 21, 0.10);
+  }
+  
+  /* почти непрозрачные карточки + хрусткая граница + слоистая тень */
+  :root[data-theme="light"] .card {
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-color: var(--border);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 1px 2px rgba(15, 17, 21, 0.05),
+      0 14px 34px rgba(15, 17, 21, 0.08);
+  }
+  
+  /* аврору почти убираем — никаких разводов */
+  :root[data-theme="light"] .bg-layer::before {
+    filter: blur(44px);
+    opacity: 0.6;
+  }
+  
+  /* таблетки / ghost — лёгкая тень, чтобы читались на белом */
+  :root[data-theme="light"] .pill,
+  :root[data-theme="light"] .btn--ghost {
+    box-shadow: 0 1px 2px rgba(15, 17, 21, 0.05);
+  }
+  :root[data-theme="light"] .pill:hover,
+  :root[data-theme="light"] .btn--ghost:hover {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--glass-border));
+  }
+  
+  /* таб-бар плотнее, чтобы не сливался с контентом */
+  :root[data-theme="light"] .tabbar {
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 10px 30px rgba(15, 17, 21, 0.12);
+  }
+  
+  /* графитовая кнопка: убираем пластмассовый белый глянец */
+  :root[data-theme="light"] .btn--primary {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 60%),
+      var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 75%, #000000);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.16) inset,
+      0 8px 20px rgba(15, 17, 21, 0.18);
+  }
+  :root[data-theme="light"] .btn--primary::after {
+    opacity: 0.22;
+    height: 38%;
+  }
+  
+  /* поля ввода / дропзон — чуть глубже фона, не сливаются */
+  :root[data-theme="light"] .input,
+  :root[data-theme="light"] .dropzone {
+    background: rgba(255, 255, 255, 0.65);
+  }
+  :root[data-theme="light"] .input:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(28, 28, 30, 0.10);
+  }
+  
+  /* иконки-кнопки в истории — видимая граница на белом */
+  :root[data-theme="light"] .histbtn {
+    background: rgba(255, 255, 255, 0.82);
+  }

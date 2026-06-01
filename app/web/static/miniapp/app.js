@@ -113,25 +113,6 @@ function bindThemeControls() {
   });
 }
 
-function bindBackgroundParallax() {
-  const bg = document.querySelector(".bg-layer");
-  if (!bg) return;
-  // только устройства с настоящим курсором + уважаем «меньше движения»
-  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  let raf = null;
-  window.addEventListener("pointermove", (event) => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = null;
-      const dx = (event.clientX / window.innerWidth - 0.5) * 2;  // -1..1
-      const dy = (event.clientY / window.innerHeight - 0.5) * 2;
-      bg.style.setProperty("--mx", (dx * 16).toFixed(1));        // ±16px
-      bg.style.setProperty("--my", (dy * 16).toFixed(1));
-    });
-  });
-}
 
 /* ---------- Вкладки ---------- */
 function setActiveTab(name) {
@@ -922,7 +903,6 @@ function bindUi() {
 	bindTabs();
 	bindThemeControls();
 	bindHistoryActions();
-  bindBackgroundParallax();
 	els.historyRefresh?.addEventListener("click", loadHistory);
 	els.addBannerCancel?.addEventListener("click", () => setAddToPack(null));
 }
