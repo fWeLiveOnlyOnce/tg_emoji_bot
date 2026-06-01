@@ -270,8 +270,9 @@ def _geometry_vf(job: JobRecord, canvas_w: int, canvas_h: int) -> str:
         )
     # без кропа — прежнее поведение: вписать + прозрачный pad
     return (
-        f"scale={canvas_w}:{canvas_h}:force_original_aspect_ratio=decrease:flags=lanczos,"
-        f"pad={canvas_w}:{canvas_h}:(ow-iw)/2:(oh-ih)/2:color=black@0,"
+        f"crop=iw*{cw:.6f}:ih*{ch:.6f}:iw*{cx:.6f}:ih*{cy:.6f},"
+        f"scale={canvas_w}:{canvas_h}:flags=lanczos,"
+        f"unsharp=3:3:0.6:3:3:0.0,"
         f"format=rgba"
     )
 
